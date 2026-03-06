@@ -2,7 +2,7 @@
 node_modules/
 vendor/
 
-# Build artifacts
+# Build artifacts (keep build/ committed so plugin works without a build step on deploy)
 *.log
 
 # OS

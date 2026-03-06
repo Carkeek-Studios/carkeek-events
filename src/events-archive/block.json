@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "carkeek-events/archive",
+  "title": "Carkeek Events Archive",
+  "category": "widgets",
+  "description": "Display a filterable, sortable list of Carkeek Events.",
+  "textdomain": "carkeek-events",
+  "editorScript": "file:./index.js",
+  "style": "file:./style-index.css",
+  "attributes": {
+    "numberOfPosts":        { "type": "number",  "default": 6 },
+    "postLayout":           { "type": "string",  "default": "grid" },
+    "columns":              { "type": "number",  "default": 3 },
+    "columnsMobile":        { "type": "number",  "default": 1 },
+    "columnsTablet":        { "type": "number",  "default": 2 },
+    "displayFeaturedImage": { "type": "boolean", "default": true },
+    "displayPostExcerpt":   { "type": "boolean", "default": false },
+    "excerptLength":        { "type": "number",  "default": 25 },
+    "showPagination":       { "type": "boolean", "default": false },
+    "includePastEvents":    { "type": "boolean", "default": false },
+    "onlyPastEvents":       { "type": "boolean", "default": false },
+    "sortOrder":            { "type": "string",  "default": "ASC" },
+    "filterByCategory":     { "type": "boolean", "default": false },
+    "catTermsSelected":     { "type": "string",  "default": "" },
+    "hideIfEmpty":          { "type": "boolean", "default": true },
+    "emptyMessage":         { "type": "string",  "default": "" },
+    "className":            { "type": "string",  "default": "" }
+  },
+  "supports": {
+    "align": ["wide", "full"],
+    "spacing": {
+      "padding": true,
+      "margin": true
+    }
+  }
+}

@@ -74,7 +74,7 @@ class CarkeekEvents_Query {
 		// Apply chronological default sort if not already set.
 		if ( ! $query->get( 'orderby' ) ) {
 			$query->set( 'orderby', 'meta_value' );
-			$query->set( 'meta_key', '_carkeek_event_start_date' );
+			$query->set( 'meta_key', '_carkeek_event_start' );
 			$query->set( 'order', 'ASC' );
 		}
 	}
@@ -114,7 +114,7 @@ class CarkeekEvents_Query {
 		// Apply chronological default sort if not already set.
 		if ( empty( $args['orderby'] ) || 'date' === $args['orderby'] ) {
 			$args['orderby']  = 'meta_value';
-			$args['meta_key'] = '_carkeek_event_start_date';
+			$args['meta_key'] = '_carkeek_event_start';
 			$args['order']    = 'ASC';
 		}
 
@@ -137,7 +137,7 @@ class CarkeekEvents_Query {
 		}
 		if ( 'start_date' === $query->get( 'orderby' ) ) {
 			$query->set( 'orderby', 'meta_value' );
-			$query->set( 'meta_key', '_carkeek_event_start_date' );
+			$query->set( 'meta_key', '_carkeek_event_start' );
 		}
 	}
 }

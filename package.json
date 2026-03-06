@@ -1,0 +1,17 @@
+{
+  "name": "carkeek-events",
+  "version": "2.0.0",
+  "description": "Carkeek Events WordPress plugin block assets",
+  "private": true,
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^24.1.0"
+  },
+  "dependencies": {
+    "@wordpress/server-side-render": "^3.20.0",
+    "classnames": "^2.3.2"
+  }
+}

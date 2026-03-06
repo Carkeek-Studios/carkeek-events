@@ -4,10 +4,12 @@
  *
  * Daily cron with two passes:
  *   Pass 1 — Mark expired events as hidden (_carkeek_event_hidden = 1)
- *   Pass 2 — Permanently delete events hidden longer than the grace period
+ *   Pass 2 — Set post_status = private for events whose end date is older
+ *             than content_expiry_days (default 365). Private posts return
+ *             404 to logged-out users; no data is permanently deleted.
  *
- * Events with no end date (_carkeek_event_end_date empty) are never hidden.
- * All date comparisons use site local time via current_time().
+ * Events with no end date (_carkeek_event_end empty) are never hidden or expired.
+ * All date comparisons use ISO 8601 CHAR sorting against site local time.
  *
  * @package carkeek-events
  * @since   1.0.0
@@ -41,7 +43,7 @@ class CarkeekEvents_Cron {
 	 */
 	public function run() {
 		$this->pass_hide_expired();
-		$this->pass_delete_old();
+		$this->pass_expire_old();
 	}
 
 	// -----------------------------------------------------------------------
@@ -49,7 +51,10 @@ class CarkeekEvents_Cron {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Hide events whose end date has passed the configured threshold.
+	 * Hide events whose end datetime has passed the configured threshold.
+	 *
+	 * Uses ISO 8601 CHAR comparison on _carkeek_event_end so the full
+	 * datetime is considered in a single meta query without PHP-level filtering.
 	 *
 	 * @since 1.0.0
 	 * @return void
@@ -62,23 +67,38 @@ class CarkeekEvents_Cron {
 			return;
 		}
 
-		// Build base query args — all published events with an end date that aren't already hidden.
-		$query_args = array(
+		// Determine the threshold ISO string based on behavior.
+		if ( 'end_of_day' === $behavior ) {
+			// Hide events whose end date is before today (at start of today = end of yesterday).
+			$threshold = current_time( 'Y-m-d' ) . 'T00:00:00';
+		} else {
+			// 'immediate' — hide as soon as end datetime has passed.
+			$threshold = current_time( 'Y-m-d\TH:i:s' );
+		}
+
+		$query = new WP_Query( array(
 			'post_type'      => 'carkeek_event',
 			'post_status'    => 'publish',
 			'posts_per_page' => -1,
 			'fields'         => 'ids',
 			'meta_query'     => array(
 				'relation' => 'AND',
-				// Must have an end date.
+				// Must have a non-empty end datetime.
 				array(
-					'key'     => '_carkeek_event_end_date',
+					'key'     => '_carkeek_event_end',
 					'compare' => 'EXISTS',
 				),
 				array(
-					'key'     => '_carkeek_event_end_date',
+					'key'     => '_carkeek_event_end',
 					'value'   => '',
 					'compare' => '!=',
+				),
+				// End datetime is before the threshold.
+				array(
+					'key'     => '_carkeek_event_end',
+					'value'   => $threshold,
+					'compare' => '<',
+					'type'    => 'CHAR',
 				),
 				// Not already hidden.
 				array(
@@ -94,69 +114,39 @@ class CarkeekEvents_Cron {
 					),
 				),
 			),
-		);
+		) );
 
-		$expired_ids = array();
-		$today       = current_time( 'Y-m-d' );
-		$now         = current_time( 'Y-m-d H:i:s' );
+		foreach ( $query->posts as $post_id ) {
+			// Allow per-event threshold override by add-ons.
+			$end_iso   = get_post_meta( $post_id, '_carkeek_event_end', true );
+			$threshold = apply_filters( 'carkeek_events_expiry_threshold', $threshold, $post_id );
 
-		if ( 'end_of_day' === $behavior ) {
-			// All events whose end date is strictly before today.
-			$query_args['meta_query'][] = array(
-				'key'     => '_carkeek_event_end_date',
-				'value'   => $today,
-				'compare' => '<',
-				'type'    => 'DATE',
-			);
-			$query    = new WP_Query( $query_args );
-			$expired_ids = $query->posts;
-
-		} elseif ( 'immediate' === $behavior ) {
-			// Events where end_date + end_time is in the past.
-			// We query by date first, then filter by time in PHP.
-			$query_args['meta_query'][] = array(
-				'key'     => '_carkeek_event_end_date',
-				'value'   => $today,
-				'compare' => '<=',
-				'type'    => 'DATE',
-			);
-			$query = new WP_Query( $query_args );
-
-			foreach ( $query->posts as $post_id ) {
-				$end_date = get_post_meta( $post_id, '_carkeek_event_end_date', true );
-				$end_time = get_post_meta( $post_id, '_carkeek_event_end_time', true ) ?: '23:59';
-				$end_dt   = $end_date . ' ' . $end_time . ':00';
-
-				// Allow per-event threshold override by add-ons.
-				$threshold = apply_filters( 'carkeek_events_expiry_threshold', $end_dt, $post_id );
-
-				if ( $threshold < $now ) {
-					$expired_ids[] = $post_id;
-				}
+			if ( $end_iso >= $threshold ) {
+				continue;
 			}
-		}
 
-		foreach ( $expired_ids as $post_id ) {
 			do_action( 'carkeek_events_before_hide', $post_id );
-			update_post_meta( $post_id, '_carkeek_event_hidden', 1 );
-			update_post_meta( $post_id, '_carkeek_event_hidden_date', $today );
+			update_post_meta( $post_id, '_carkeek_event_hidden', '1' );
 		}
 	}
 
 	// -----------------------------------------------------------------------
-	// Pass 2: Permanently delete old hidden events
+	// Pass 2: Expire old events (set post_status = private)
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Permanently delete events that have been hidden longer than the grace period.
+	 * Set post_status = private for events whose end date is older than
+	 * content_expiry_days. Private posts return 404 to logged-out users.
+	 * No data is permanently deleted — posts remain restorable by an admin.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 * @return void
 	 */
-	private function pass_delete_old() {
+	private function pass_expire_old() {
 		$settings     = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
-		$grace_period = max( 1, (int) ( $settings['deletion_grace_period'] ?? 30 ) );
-		$cutoff_date  = gmdate( 'Y-m-d', strtotime( "-{$grace_period} days", current_time( 'timestamp' ) ) );
+		$expiry_days  = absint( $settings['content_expiry_days'] ?? 365 );
+		$expiry_days  = max( 1, $expiry_days );
+		$cutoff       = date( 'Y-m-d\T00:00:00', strtotime( "-{$expiry_days} days", current_time( 'timestamp' ) ) );
 
 		$query = new WP_Query( array(
 			'post_type'      => 'carkeek_event',
@@ -165,22 +155,32 @@ class CarkeekEvents_Cron {
 			'fields'         => 'ids',
 			'meta_query'     => array(
 				'relation' => 'AND',
+				// Must have a non-empty end datetime.
 				array(
-					'key'   => '_carkeek_event_hidden',
-					'value' => '1',
+					'key'     => '_carkeek_event_end',
+					'compare' => 'EXISTS',
 				),
 				array(
-					'key'     => '_carkeek_event_hidden_date',
-					'value'   => $cutoff_date,
+					'key'     => '_carkeek_event_end',
+					'value'   => '',
+					'compare' => '!=',
+				),
+				// End datetime is older than the expiry cutoff.
+				array(
+					'key'     => '_carkeek_event_end',
+					'value'   => $cutoff,
 					'compare' => '<',
-					'type'    => 'DATE',
+					'type'    => 'CHAR',
 				),
 			),
 		) );
 
 		foreach ( $query->posts as $post_id ) {
-			do_action( 'carkeek_events_before_delete', $post_id );
-			wp_delete_post( $post_id, true ); // force-delete, bypass trash.
+			do_action( 'carkeek_events_before_expire', $post_id );
+			wp_update_post( array(
+				'ID'          => $post_id,
+				'post_status' => 'private',
+			) );
 		}
 	}
 }

@@ -1,0 +1,37 @@
+/**
+ * Carkeek Events Archive Block — structural styles only.
+ * Layout and visual design are expected to come from the theme.
+ */
+
+.carkeek-events-archive {
+	&.is-grid {
+		display: grid;
+		gap: 1.5rem;
+
+		&.columns-1 { grid-template-columns: repeat(1, 1fr); }
+		&.columns-2 { grid-template-columns: repeat(2, 1fr); }
+		&.columns-3 { grid-template-columns: repeat(3, 1fr); }
+		&.columns-4 { grid-template-columns: repeat(4, 1fr); }
+		&.columns-5 { grid-template-columns: repeat(5, 1fr); }
+		&.columns-6 { grid-template-columns: repeat(6, 1fr); }
+
+		@media ( max-width: 782px ) {
+			&.columns-tablet-1 { grid-template-columns: repeat(1, 1fr); }
+			&.columns-tablet-2 { grid-template-columns: repeat(2, 1fr); }
+		}
+
+		@media ( max-width: 480px ) {
+			&.columns-mobile-1 { grid-template-columns: repeat(1, 1fr); }
+		}
+	}
+
+	&.is-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	&__empty {
+		font-style: italic;
+	}
+}

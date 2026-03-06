@@ -114,6 +114,8 @@ if ( ! class_exists( 'CarkeekEvents' ) ) {
 		private function init() {
 			add_action( 'plugins_loaded', array( $this, 'includes' ), 15 );
 			add_action( 'plugins_loaded', array( $this, 'load_textdomain' ), 99 );
+			// Flush rewrite rules automatically when archive settings change.
+			add_action( 'update_option_carkeek_events_settings', 'flush_rewrite_rules' );
 		}
 
 		/**
@@ -134,6 +136,9 @@ if ( ! class_exists( 'CarkeekEvents' ) ) {
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-geocode.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-gamajo-template-loader.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-template-loader.php';
+			if ( file_exists( CARKEEKEVENTS_PLUGIN_DIR . 'build/events-archive/index.asset.php' ) ) {
+				require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-block.php';
+			}
 		}
 
 		/**

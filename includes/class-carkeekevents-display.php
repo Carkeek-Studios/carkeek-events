@@ -39,20 +39,20 @@ class CarkeekEvents_Display {
 	 * @return string HTML string, or empty string if no start date is set.
 	 */
 	public static function get_date_range_html( $post_id, $separator = ', ' ) {
-		$start_date = get_post_meta( $post_id, '_carkeek_event_start_date', true );
-		$start_time = get_post_meta( $post_id, '_carkeek_event_start_time', true );
-		$end_date   = get_post_meta( $post_id, '_carkeek_event_end_date', true );
-		$end_time   = get_post_meta( $post_id, '_carkeek_event_end_time', true );
+		$start = get_post_meta( $post_id, '_carkeek_event_start', true );
+		$end   = get_post_meta( $post_id, '_carkeek_event_end', true );
 
-		return self::format_date_range( $start_date, $start_time, $end_date, $end_time, $separator );
+		return self::format_date_range( $start, $end, $separator );
 	}
 
 	/**
 	 * Format an event date/time range into span-wrapped HTML.
 	 *
+	 * Accepts ISO 8601 local-time strings (YYYY-MM-DDTHH:MM:SS). Time component
+	 * 00:00:00 is treated as "no time set" and omitted from display.
+	 *
 	 * Date values are wrapped in <span class="carkeek-event-date"> and time values
-	 * in <span class="carkeek-event-time"> so CSS can control whether they appear
-	 * on one line or two without touching PHP.
+	 * in <span class="carkeek-event-time"> so CSS can control layout independently.
 	 *
 	 * Same-day: <date> {separator} <start-time> &ndash; <end-time>
 	 * Multi-day: <start-date> {separator} <start-time> &ndash; <end-date> {separator} <end-time>
@@ -60,21 +60,29 @@ class CarkeekEvents_Display {
 	 * Fires the `carkeek_events_date_range` filter so developers can override.
 	 *
 	 * @since 1.0.0
-	 * @param string $start_date Y-m-d
-	 * @param string $start_time H:i  (may be empty)
-	 * @param string $end_date   Y-m-d (may be empty)
-	 * @param string $end_time   H:i  (may be empty)
-	 * @param string $separator  Separator between date and time spans. Default ', '.
+	 * @param string $start_iso ISO 8601 start datetime (YYYY-MM-DDTHH:MM:SS).
+	 * @param string $end_iso   ISO 8601 end datetime. Empty for open-ended events.
+	 * @param string $separator Separator between date and time spans. Default ', '.
 	 * @return string Formatted HTML string.
 	 */
-	public static function format_date_range( $start_date, $start_time, $end_date, $end_time, $separator = ', ' ) {
-		if ( ! $start_date ) {
+	public static function format_date_range( $start_iso, $end_iso = '', $separator = ', ' ) {
+		if ( ! $start_iso ) {
 			return '';
 		}
 
 		$settings    = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
 		$date_format = ! empty( $settings['date_format'] ) ? $settings['date_format'] : get_option( 'date_format' );
 		$time_format = ! empty( $settings['time_format'] ) ? $settings['time_format'] : get_option( 'time_format' );
+
+		// Parse start ISO into date and time components.
+		$start_date = substr( $start_iso, 0, 10 );
+		$start_time = ( strlen( $start_iso ) > 10 && substr( $start_iso, 11 ) !== '00:00:00' )
+			? substr( $start_iso, 11, 5 ) : '';
+
+		// Parse end ISO into date and time components.
+		$end_date = $end_iso ? substr( $end_iso, 0, 10 ) : '';
+		$end_time = ( $end_iso && strlen( $end_iso ) > 10 && substr( $end_iso, 11 ) !== '00:00:00' )
+			? substr( $end_iso, 11, 5 ) : '';
 
 		$start_ts = strtotime( $start_date );
 		$end_ts   = ( $end_date && $end_date !== $start_date ) ? strtotime( $end_date ) : 0;

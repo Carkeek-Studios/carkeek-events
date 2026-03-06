@@ -47,8 +47,9 @@ class CarkeekEvents_Meta {
 		// carkeek_event meta fields
 		// ---------------------------------------------------------------
 
-		// Start date: YYYY-MM-DD (site local time).
-		register_meta( 'post', '_carkeek_event_start_date', array(
+		// Combined start datetime: ISO 8601 local time (2026-03-15T10:00:00).
+		// Time component is 00:00:00 when no time is set.
+		register_meta( 'post', '_carkeek_event_start', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
 			'single'         => true,
@@ -56,26 +57,8 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// Start time: HH:MM (site local time).
-		register_meta( 'post', '_carkeek_event_start_time', array(
-			'object_subtype' => 'carkeek_event',
-			'type'           => 'string',
-			'single'         => true,
-			'show_in_rest'   => true,
-			'auth_callback'  => $auth_callback,
-		) );
-
-		// End date: YYYY-MM-DD. Leave blank for open-ended events (they will never expire).
-		register_meta( 'post', '_carkeek_event_end_date', array(
-			'object_subtype' => 'carkeek_event',
-			'type'           => 'string',
-			'single'         => true,
-			'show_in_rest'   => true,
-			'auth_callback'  => $auth_callback,
-		) );
-
-		// End time: HH:MM. Used with immediate expiry mode.
-		register_meta( 'post', '_carkeek_event_end_time', array(
+		// Combined end datetime. Empty string for open-ended events (they will never expire).
+		register_meta( 'post', '_carkeek_event_end', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
 			'single'         => true,
@@ -137,17 +120,9 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// Hidden flag set by the expiry cron. 1 = hidden from front end.
+		// Hidden flag. '1' = excluded from archive listings, but direct URL still works.
+		// Set manually via meta box checkbox, or automatically by cron when event end date passes.
 		register_meta( 'post', '_carkeek_event_hidden', array(
-			'object_subtype' => 'carkeek_event',
-			'type'           => 'boolean',
-			'single'         => true,
-			'show_in_rest'   => true,
-			'auth_callback'  => $auth_callback,
-		) );
-
-		// Date when the event was hidden by cron (YYYY-MM-DD). Used for grace period calc.
-		register_meta( 'post', '_carkeek_event_hidden_date', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
 			'single'         => true,

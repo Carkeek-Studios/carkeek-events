@@ -38,6 +38,12 @@ class CarkeekEvents_Post_Types {
 	 * @return void
 	 */
 	public function register_post_types() {
+		// Read archive settings — controls has_archive at registration time.
+		$settings        = get_option( 'carkeek_events_settings', array() );
+		$disable_archive = ! empty( $settings['disable_wp_archive'] );
+		$archive_slug    = sanitize_title( $settings['archive_slug'] ?? 'events' ) ?: 'events';
+		$has_archive     = $disable_archive ? false : $archive_slug;
+
 		// --- carkeek_event ---
 		$event_labels = array(
 			'name'                  => _x( 'Events', 'Post type general name', 'carkeek-events' ),
@@ -65,7 +71,7 @@ class CarkeekEvents_Post_Types {
 				'labels'        => $event_labels,
 				'public'        => true,
 				'show_in_rest'  => true,
-				'has_archive'   => 'events',
+				'has_archive'   => $has_archive,
 				'menu_icon'     => 'dashicons-calendar-alt',
 				'menu_position' => 5,
 				'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt' ),

@@ -6,9 +6,11 @@
  * key (CARKEEKEVENTS_OPTION_NAME) as an array.
  *
  * Default values:
- *   expiry_behavior       => 'end_of_day'
- *   deletion_grace_period => 30
- *   google_maps_api_key   => ''
+ *   expiry_behavior      => 'end_of_day'
+ *   content_expiry_days  => 365
+ *   disable_wp_archive   => '1'
+ *   archive_slug         => 'events'
+ *   google_maps_api_key  => ''
  *
  * @package carkeek-events
  * @since   1.0.0
@@ -66,14 +68,38 @@ class CarkeekEvents_Settings {
 		);
 
 		add_settings_field(
-			'deletion_grace_period',
-			__( 'Deletion Grace Period', 'carkeek-events' ),
-			array( $this, 'deletion_grace_period_callback' ),
+			'content_expiry_days',
+			__( 'Content Expiry Period', 'carkeek-events' ),
+			array( $this, 'content_expiry_days_callback' ),
 			'carkeek-events',
 			'carkeek_events_expiry_section'
 		);
 
-		// Section 2: Display.
+		// Section 2: Archive.
+		add_settings_section(
+			'carkeek_events_archive_section',
+			__( 'Archive', 'carkeek-events' ),
+			array( $this, 'archive_section_description' ),
+			'carkeek-events'
+		);
+
+		add_settings_field(
+			'disable_wp_archive',
+			__( 'WordPress Archive', 'carkeek-events' ),
+			array( $this, 'disable_wp_archive_callback' ),
+			'carkeek-events',
+			'carkeek_events_archive_section'
+		);
+
+		add_settings_field(
+			'archive_slug',
+			__( 'Archive Slug', 'carkeek-events' ),
+			array( $this, 'archive_slug_callback' ),
+			'carkeek-events',
+			'carkeek_events_archive_section'
+		);
+
+		// Section 3: Display.
 		add_settings_section(
 			'carkeek_events_display_section',
 			__( 'Display', 'carkeek-events' ),
@@ -145,8 +171,7 @@ class CarkeekEvents_Settings {
 	 * @return void
 	 */
 	public function expiry_section_description() {
-		echo '<p class="description">' . esc_html__( 'Control when past events are hidden from the front end and permanently deleted. Events with no end date are never hidden.', 'carkeek-events' ) . '</p>';
-		echo '<p class="description notice notice-warning inline">' . esc_html__( 'Warning: deleted events are permanently removed and cannot be recovered.', 'carkeek-events' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Control when past events are hidden from listings and when they expire. Events with no end date are never hidden or expired.', 'carkeek-events' ) . '</p>';
 	}
 
 	/**
@@ -342,24 +367,74 @@ class CarkeekEvents_Settings {
 	}
 
 	/**
-	 * Deletion grace period field callback.
+	 * Content expiry period field callback.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 * @return void
 	 */
-	public function deletion_grace_period_callback() {
+	public function content_expiry_days_callback() {
 		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
-		$value    = isset( $settings['deletion_grace_period'] ) ? absint( $settings['deletion_grace_period'] ) : 30;
+		$value    = isset( $settings['content_expiry_days'] ) ? absint( $settings['content_expiry_days'] ) : 365;
 		?>
 		<input type="number"
-			name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[deletion_grace_period]"
-			id="carkeek_deletion_grace_period"
+			name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[content_expiry_days]"
+			id="carkeek_content_expiry_days"
 			value="<?php echo esc_attr( $value ); ?>"
 			min="1"
 			step="1"
 			style="width:80px;" />
 		<span><?php esc_html_e( 'days', 'carkeek-events' ); ?></span>
-		<p class="description"><?php esc_html_e( 'Hidden events are permanently deleted after this many days. Minimum 1.', 'carkeek-events' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Events are set to private (returning 404 to visitors) this many days after their end date. Default is 365 days — useful for annual events you want to keep for one year. Minimum 1. Private posts remain in the database and can be restored by an admin.', 'carkeek-events' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Archive section description.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	public function archive_section_description() {
+		echo '<p class="description">' . esc_html__( 'Control the WordPress built-in event archive. Disable it when you want to create your own page with the events slug and use the Carkeek Events Archive block.', 'carkeek-events' ) . '</p>';
+	}
+
+	/**
+	 * Disable WordPress archive field callback.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	public function disable_wp_archive_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['disable_wp_archive'] ?? '1';
+		?>
+		<label>
+			<input type="checkbox"
+				name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[disable_wp_archive]"
+				value="1"
+				<?php checked( $value, '1' ); ?> />
+			<?php esc_html_e( 'Disable the built-in WordPress archive. Recommended when using the Carkeek Events Archive block on a custom page.', 'carkeek-events' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
+	 * Archive slug field callback.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	public function archive_slug_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['archive_slug'] ?? 'events';
+		?>
+		<input type="text"
+			name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[archive_slug]"
+			id="carkeek_archive_slug"
+			value="<?php echo esc_attr( $value ); ?>"
+			size="20"
+			placeholder="events" />
+		<p class="description"><?php esc_html_e( 'Slug for the WordPress event archive (used only when the WordPress archive is enabled). Default: events. Rewrite rules flush automatically when saved.', 'carkeek-events' ); ?></p>
 		<?php
 	}
 
@@ -412,8 +487,12 @@ class CarkeekEvents_Settings {
 			? $input['expiry_behavior']
 			: 'end_of_day';
 
-		$grace = absint( $input['deletion_grace_period'] ?? 30 );
-		$sanitized['deletion_grace_period'] = max( 1, $grace );
+		$expiry_days = absint( $input['content_expiry_days'] ?? 365 );
+		$sanitized['content_expiry_days'] = max( 1, $expiry_days );
+
+		// Archive.
+		$sanitized['disable_wp_archive'] = ! empty( $input['disable_wp_archive'] ) ? '1' : '0';
+		$sanitized['archive_slug']       = sanitize_title( $input['archive_slug'] ?? 'events' ) ?: 'events';
 
 		// Display.
 		$sanitized['use_plugin_template'] = ( '0' === ( $input['use_plugin_template'] ?? '1' ) ) ? '0' : '1';
