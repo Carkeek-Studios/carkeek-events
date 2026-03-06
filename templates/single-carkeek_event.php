@@ -27,6 +27,7 @@ while ( have_posts() ) :
 	$date_range        = CarkeekEvents_Display::format_date_range( $start_date, $start_time, $end_date, $end_time );
 	$location_display  = CarkeekEvents_Display::get_location_html( $location_id, $location_text, $post_id );
 	$organizer_display = CarkeekEvents_Display::get_organizer_html( $organizer_id, $organizer_text, $post_id );
+	$event_link        = CarkeekEvents_Display::get_event_link_html( $post_id );
 	?>
 
 	<article id="post-<?php the_ID(); ?>" <?php post_class( 'carkeek-event' ); ?>>
@@ -56,6 +57,12 @@ while ( have_posts() ) :
 				<?php if ( $organizer_display ) : ?>
 					<div class="carkeek-event__organizer">
 						<?php echo wp_kses_post( $organizer_display ); ?>
+					</div>
+				<?php endif; ?>
+
+				<?php if ( $event_link ) : ?>
+					<div class="carkeek-event__link">
+						<?php echo wp_kses_post( $event_link ); ?>
 					</div>
 				<?php endif; ?>
 			</div>

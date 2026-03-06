@@ -33,6 +33,7 @@ $permalink      = get_permalink( $post_id );
 $date_range        = CarkeekEvents_Display::format_date_range( $start_date, $start_time, $end_date, $end_time );
 $location_display  = CarkeekEvents_Display::get_location_html( $location_id, $location_text, $post_id );
 $organizer_display = CarkeekEvents_Display::get_organizer_html( $organizer_id, $organizer_text, $post_id );
+$event_link        = CarkeekEvents_Display::get_event_link_html( $post_id );
 ?>
 <div class="ck-columns-item ck-custom-archive-item carkeek-event-card">
 
@@ -72,6 +73,12 @@ $organizer_display = CarkeekEvents_Display::get_organizer_html( $organizer_id, $
 			?>
 			<div class="ck-custom-archive-excerpt">
 				<?php echo wp_kses_post( $excerpt ); ?>
+			</div>
+		<?php endif; ?>
+
+		<?php if ( $event_link ) : ?>
+			<div class="carkeek-event-card__link">
+				<?php echo wp_kses_post( $event_link ); ?>
 			</div>
 		<?php endif; ?>
 

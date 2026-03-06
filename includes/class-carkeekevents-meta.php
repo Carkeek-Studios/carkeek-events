@@ -119,6 +119,24 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
+		// External website / registration URL. When set, templates render a CTA button.
+		register_meta( 'post', '_carkeek_event_website', array(
+			'object_subtype' => 'carkeek_event',
+			'type'           => 'string',
+			'single'         => true,
+			'show_in_rest'   => true,
+			'auth_callback'  => $auth_callback,
+		) );
+
+		// CTA button label. Defaults to "Sign Up" at render time if blank.
+		register_meta( 'post', '_carkeek_event_button_label', array(
+			'object_subtype' => 'carkeek_event',
+			'type'           => 'string',
+			'single'         => true,
+			'show_in_rest'   => true,
+			'auth_callback'  => $auth_callback,
+		) );
+
 		// Hidden flag set by the expiry cron. 1 = hidden from front end.
 		register_meta( 'post', '_carkeek_event_hidden', array(
 			'object_subtype' => 'carkeek_event',

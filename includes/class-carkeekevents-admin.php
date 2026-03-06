@@ -38,9 +38,9 @@ class CarkeekEvents_Admin {
 	 */
 	public function add_admin_menu() {
 		add_submenu_page(
-			'options-general.php',
+			'edit.php?post_type=carkeek_event',
 			__( 'Events Settings', 'carkeek-events' ),
-			__( 'Events', 'carkeek-events' ),
+			__( 'Settings', 'carkeek-events' ),
 			'manage_options',
 			'carkeek-events',
 			array( new CarkeekEvents_Settings(), 'settings_page' )
@@ -61,7 +61,7 @@ class CarkeekEvents_Admin {
 			&& $post
 			&& in_array( $post->post_type, array( 'carkeek_event', 'carkeek_location', 'carkeek_organizer' ), true );
 
-		$is_settings_screen = 'settings_page_carkeek-events' === $hook;
+		$is_settings_screen = 'carkeek_event_page_carkeek-events' === $hook;
 
 		if ( ! $is_cpt_screen && ! $is_settings_screen ) {
 			return;
