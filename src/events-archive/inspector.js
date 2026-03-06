@@ -1,7 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import {
-	InspectorControls,
-} from '@wordpress/block-editor';
+import { InspectorControls } from '@wordpress/block-editor';
 import {
 	PanelBody,
 	PanelRow,
@@ -11,9 +9,27 @@ import {
 	TextControl,
 	CheckboxControl,
 	RadioControl,
+	Button,
+	Flex,
+	FlexBlock,
+	FlexItem,
 } from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
-import icons from './icons';
+
+const MAX_SLOTS = 5;
+
+const SLOT_OPTIONS = [
+	{ value: '', label: __( '— select —', 'carkeek-events' ) },
+	{ value: 'title', label: __( 'Title', 'carkeek-events' ) },
+	{ value: 'date_time', label: __( 'Date + Time', 'carkeek-events' ) },
+	{ value: 'date', label: __( 'Date only', 'carkeek-events' ) },
+	{ value: 'time', label: __( 'Time only', 'carkeek-events' ) },
+	{ value: 'location', label: __( 'Location', 'carkeek-events' ) },
+	{ value: 'organizer', label: __( 'Organizer', 'carkeek-events' ) },
+	{ value: 'excerpt', label: __( 'Excerpt', 'carkeek-events' ) },
+];
+
+const DATE_SLOT_VALUES = [ 'date_time', 'date', 'time' ];
 
 const EventsInspector = ( { attributes, setAttributes } ) => {
 	const {
@@ -23,7 +39,6 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		columnsMobile,
 		columnsTablet,
 		displayFeaturedImage,
-		displayPostExcerpt,
 		excerptLength,
 		showPagination,
 		includePastEvents,
@@ -33,9 +48,40 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		catTermsSelected,
 		hideIfEmpty,
 		emptyMessage,
+		contentSlots,
+		slotDateFormat,
+		slotTimeFormat,
+		showEndDateTime,
 	} = attributes;
 
-	// Fetch event categories for the filter.
+	// Parse contentSlots string into an array.
+	const slots = contentSlots ? contentSlots.split( ',' ).filter( Boolean ) : [];
+	const hasDateSlot = slots.some( ( s ) => DATE_SLOT_VALUES.includes( s ) );
+	const hasExcerptSlot = slots.includes( 'excerpt' );
+
+	// Number of select rows to show = filled slots + 1 empty one (up to MAX_SLOTS).
+	const visibleCount = Math.min( MAX_SLOTS, slots.length + 1 );
+
+	// Build the options for a given slot index, excluding values already used
+	// elsewhere (so each type can only appear once), except the current slot's own value.
+	const getSlotOptions = ( index ) => {
+		const current = slots[ index ] || '';
+		return SLOT_OPTIONS.filter(
+			( opt ) => opt.value === '' || opt.value === current || ! slots.includes( opt.value )
+		);
+	};
+
+	const updateSlot = ( index, value ) => {
+		const next = [ ...slots ];
+		if ( value ) {
+			next[ index ] = value;
+		} else {
+			next.splice( index, 1 );
+		}
+		setAttributes( { contentSlots: next.filter( Boolean ).join( ',' ) } );
+	};
+
+	// Fetch event categories.
 	const categories = useSelect( ( select ) => {
 		return select( 'core' ).getEntityRecords(
 			'taxonomy',
@@ -57,8 +103,87 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 
 	return (
 		<InspectorControls>
+
+			{ /* Content Panel */ }
+			<PanelBody title={ __( 'Content', 'carkeek-events' ) } initialOpen={ true }>
+				<p style={ { marginTop: 0, fontSize: 12, color: '#757575' } }>
+					{ __( 'Choose up to 5 content items. Drag to reorder — output matches this order.', 'carkeek-events' ) }
+				</p>
+
+				{ Array.from( { length: visibleCount } ).map( ( _, index ) => (
+					<Flex key={ index } align="center" style={ { marginBottom: 8 } }>
+						<FlexBlock>
+							<SelectControl
+								label={ `${ __( 'Slot', 'carkeek-events' ) } ${ index + 1 }` }
+								hideLabelFromVision={ index > 0 }
+								value={ slots[ index ] || '' }
+								options={ getSlotOptions( index ) }
+								onChange={ ( value ) => updateSlot( index, value ) }
+								__nextHasNoMarginBottom
+							/>
+						</FlexBlock>
+						{ slots[ index ] && (
+							<FlexItem style={ { paddingTop: index === 0 ? 20 : 0 } }>
+								<Button
+									isSmall
+									isDestructive
+									variant="tertiary"
+									onClick={ () => updateSlot( index, '' ) }
+									aria-label={ __( 'Remove slot', 'carkeek-events' ) }
+								>
+									✕
+								</Button>
+							</FlexItem>
+						) }
+					</Flex>
+				) ) }
+
+				{ /* Date format options — shown when any date/time slot is active */ }
+				{ hasDateSlot && (
+					<>
+						<hr style={ { margin: '12px 0' } } />
+						<TextControl
+							label={ __( 'Date Format', 'carkeek-events' ) }
+							help={ __( 'PHP date format, e.g. M j, Y. Leave blank to use the plugin default.', 'carkeek-events' ) }
+							value={ slotDateFormat }
+							placeholder="M j, Y"
+							onChange={ ( value ) => setAttributes( { slotDateFormat: value } ) }
+							__nextHasNoMarginBottom
+						/>
+						<TextControl
+							label={ __( 'Time Format', 'carkeek-events' ) }
+							help={ __( 'PHP date format, e.g. g:i a. Leave blank to use the plugin default.', 'carkeek-events' ) }
+							value={ slotTimeFormat }
+							placeholder="g:i a"
+							onChange={ ( value ) => setAttributes( { slotTimeFormat: value } ) }
+							__nextHasNoMarginBottom
+						/>
+						<ToggleControl
+							label={ __( 'Show End Date / Time', 'carkeek-events' ) }
+							help={ __( 'When off, only the start date/time is shown.', 'carkeek-events' ) }
+							checked={ showEndDateTime }
+							onChange={ ( value ) => setAttributes( { showEndDateTime: value } ) }
+						/>
+					</>
+				) }
+
+				{ /* Excerpt length — shown when excerpt slot is active */ }
+				{ hasExcerptSlot && (
+					<>
+						<hr style={ { margin: '12px 0' } } />
+						<RangeControl
+							label={ __( 'Excerpt Length (words)', 'carkeek-events' ) }
+							value={ excerptLength }
+							onChange={ ( value ) => setAttributes( { excerptLength: value } ) }
+							min={ 10 }
+							max={ 100 }
+						/>
+					</>
+				) }
+			</PanelBody>
+
 			{ /* Events Panel */ }
-			<PanelBody title={ __( 'Events', 'carkeek-events' ) } initialOpen={ true }>
+			<PanelBody title={ __( 'Events', 'carkeek-events' ) } initialOpen={ false }>
 				<RangeControl
 					label={ __( 'Number of Events', 'carkeek-events' ) }
 					value={ numberOfPosts }
@@ -153,20 +278,6 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 					onChange={ ( value ) => setAttributes( { displayFeaturedImage: value } ) }
 				/>
 				<ToggleControl
-					label={ __( 'Display Excerpt', 'carkeek-events' ) }
-					checked={ displayPostExcerpt }
-					onChange={ ( value ) => setAttributes( { displayPostExcerpt: value } ) }
-				/>
-				{ displayPostExcerpt && (
-					<RangeControl
-						label={ __( 'Excerpt Length (words)', 'carkeek-events' ) }
-						value={ excerptLength }
-						onChange={ ( value ) => setAttributes( { excerptLength: value } ) }
-						min={ 10 }
-						max={ 100 }
-					/>
-				) }
-				<ToggleControl
 					label={ __( 'Show Pagination', 'carkeek-events' ) }
 					checked={ showPagination }
 					onChange={ ( value ) => setAttributes( { showPagination: value } ) }
@@ -190,6 +301,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 					/>
 				) }
 			</PanelBody>
+
 		</InspectorControls>
 	);
 };

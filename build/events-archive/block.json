@@ -33,10 +33,6 @@
       "type": "boolean",
       "default": true
     },
-    "displayPostExcerpt": {
-      "type": "boolean",
-      "default": false
-    },
     "excerptLength": {
       "type": "number",
       "default": 25
@@ -76,6 +72,22 @@
     "className": {
       "type": "string",
       "default": ""
+    },
+    "contentSlots": {
+      "type": "string",
+      "default": "title,date_time"
+    },
+    "slotDateFormat": {
+      "type": "string",
+      "default": ""
+    },
+    "slotTimeFormat": {
+      "type": "string",
+      "default": ""
+    },
+    "showEndDateTime": {
+      "type": "boolean",
+      "default": true
     }
   },
   "supports": {

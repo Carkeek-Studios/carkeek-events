@@ -15,7 +15,6 @@
     "columnsMobile":        { "type": "number",  "default": 1 },
     "columnsTablet":        { "type": "number",  "default": 2 },
     "displayFeaturedImage": { "type": "boolean", "default": true },
-    "displayPostExcerpt":   { "type": "boolean", "default": false },
     "excerptLength":        { "type": "number",  "default": 25 },
     "showPagination":       { "type": "boolean", "default": false },
     "includePastEvents":    { "type": "boolean", "default": false },
@@ -25,7 +24,11 @@
     "catTermsSelected":     { "type": "string",  "default": "" },
     "hideIfEmpty":          { "type": "boolean", "default": true },
     "emptyMessage":         { "type": "string",  "default": "" },
-    "className":            { "type": "string",  "default": "" }
+    "className":            { "type": "string",  "default": "" },
+    "contentSlots":         { "type": "string",  "default": "title,date_time" },
+    "slotDateFormat":       { "type": "string",  "default": "" },
+    "slotTimeFormat":       { "type": "string",  "default": "" },
+    "showEndDateTime":      { "type": "boolean", "default": true }
   },
   "supports": {
     "align": ["wide", "full"],
