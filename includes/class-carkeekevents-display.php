@@ -179,6 +179,43 @@ class CarkeekEvents_Display {
 	}
 
 	// -----------------------------------------------------------------------
+	// Event link / CTA button
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Build an event CTA button/link HTML.
+	 *
+	 * Returns an <a> element linking to the event website URL stored in
+	 * `_carkeek_event_website`. The button label comes from
+	 * `_carkeek_event_button_label` and defaults to "Sign Up" when blank.
+	 * Returns empty string if no URL is set.
+	 *
+	 * Fires `carkeek_events_link_html` filter before returning.
+	 *
+	 * @since 1.1.0
+	 * @param int $post_id Event post ID.
+	 * @return string HTML, or empty string if no website URL is set.
+	 */
+	public static function get_event_link_html( $post_id ) {
+		$url   = get_post_meta( $post_id, '_carkeek_event_website', true );
+		$label = get_post_meta( $post_id, '_carkeek_event_button_label', true );
+
+		if ( ! $url ) {
+			return '';
+		}
+
+		if ( ! $label ) {
+			$label = __( 'Sign Up', 'carkeek-events' );
+		}
+
+		$html = '<a href="' . esc_url( $url ) . '" class="carkeek-event-link wp-element-button" target="_blank" rel="noopener noreferrer">'
+			. esc_html( $label )
+			. '</a>';
+
+		return apply_filters( 'carkeek_events_link_html', $html, $post_id, $url, $label );
+	}
+
+	// -----------------------------------------------------------------------
 	// Organizer display
 	// -----------------------------------------------------------------------
 
