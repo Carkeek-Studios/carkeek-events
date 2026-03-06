@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+vendor/
+
+# Build artifacts
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Languages (compiled)
+languages/*.mo
+
+# Uploads / temp
+tmp/

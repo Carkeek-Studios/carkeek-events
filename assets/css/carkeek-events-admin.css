@@ -1,0 +1,220 @@
+/**
+ * Carkeek Events Admin CSS
+ *
+ * Styles for meta boxes, location/organizer selectors, and settings page.
+ *
+ * @package carkeek-events
+ */
+
+/* ------------------------------------------------------------------
+   Meta box wrapper
+   ------------------------------------------------------------------ */
+
+.carkeek-events-meta-box {
+	padding: 4px 0;
+}
+
+/* ------------------------------------------------------------------
+   Row / column grid
+   ------------------------------------------------------------------ */
+
+.carkeek-events-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px 16px;
+	margin-bottom: 12px;
+}
+
+.carkeek-events-col {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 120px;
+}
+
+.carkeek-events-col--full {
+	flex: 1 1 100%;
+}
+
+.carkeek-events-col label {
+	font-weight: 600;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: #50575e;
+}
+
+.carkeek-events-col input[type="date"],
+.carkeek-events-col input[type="time"],
+.carkeek-events-col input[type="text"],
+.carkeek-events-col input[type="url"],
+.carkeek-events-col input[type="email"],
+.carkeek-events-col input[type="tel"] {
+	max-width: 200px;
+}
+
+.carkeek-events-col input.widefat {
+	max-width: none;
+}
+
+/* ------------------------------------------------------------------
+   Dates row
+   ------------------------------------------------------------------ */
+
+.carkeek-events-dates-row .carkeek-events-col {
+	min-width: 140px;
+}
+
+/* ------------------------------------------------------------------
+   Location / Organizer relationship field
+   ------------------------------------------------------------------ */
+
+.carkeek-events-relationship {
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	padding: 8px;
+	background: #f9f9f9;
+}
+
+.carkeek-events-relationship__tabs {
+	display: flex;
+	gap: 0;
+	margin-bottom: 8px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.carkeek-events-tab {
+	background: none;
+	border: none;
+	border-bottom: 2px solid transparent;
+	padding: 4px 12px;
+	cursor: pointer;
+	font-size: 13px;
+	color: #50575e;
+	margin-bottom: -1px;
+}
+
+.carkeek-events-tab.is-active {
+	color: #2271b1;
+	border-bottom-color: #2271b1;
+	font-weight: 600;
+}
+
+.carkeek-events-relationship__panel {
+	display: none;
+}
+
+.carkeek-events-relationship__panel.is-active {
+	display: block;
+}
+
+/* Search input */
+.carkeek-events-search-wrap {
+	position: relative;
+}
+
+.carkeek-events-search-input {
+	width: 100%;
+	max-width: 320px;
+}
+
+.carkeek-events-search-results {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 999;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-top: none;
+	border-radius: 0 0 3px 3px;
+	max-height: 200px;
+	overflow-y: auto;
+	min-width: 240px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	box-shadow: 0 3px 6px rgba(0, 0, 0, .1);
+}
+
+.carkeek-events-search-results__item {
+	padding: 6px 10px;
+	cursor: pointer;
+	font-size: 13px;
+}
+
+.carkeek-events-search-results__item:hover {
+	background: #2271b1;
+	color: #fff;
+}
+
+.carkeek-events-search-results__none {
+	padding: 6px 10px;
+	color: #8c8f94;
+	font-size: 13px;
+	list-style: none;
+}
+
+.carkeek-events-selected-name {
+	margin: 6px 0 0;
+	font-size: 13px;
+	color: #2271b1;
+}
+
+.carkeek-events-clear-cpt {
+	background: none;
+	border: none;
+	color: #8c8f94;
+	cursor: pointer;
+	font-size: 12px;
+	padding: 0 4px;
+	vertical-align: middle;
+}
+
+.carkeek-events-clear-cpt:hover {
+	color: #d63638;
+}
+
+/* Create new panel */
+.carkeek-events-relationship__panel--new {
+	padding-top: 4px;
+}
+
+/* ------------------------------------------------------------------
+   Geocode row
+   ------------------------------------------------------------------ */
+
+.carkeek-events-row--geocode .carkeek-events-col--geocode-btn {
+	justify-content: flex-end;
+	padding-bottom: 2px;
+}
+
+.carkeek-events-geocode-status {
+	padding: 4px 0;
+	font-size: 13px;
+}
+
+.carkeek-events-geocode-status--success {
+	color: #00a32a;
+}
+
+.carkeek-events-geocode-status--error {
+	color: #d63638;
+}
+
+/* ------------------------------------------------------------------
+   Admin list table
+   ------------------------------------------------------------------ */
+
+.column-start_date,
+.column-end_date {
+	width: 130px;
+}
+
+.column-location,
+.column-organizer {
+	width: 160px;
+}
+
+.column-status {
+	width: 120px;
+}
