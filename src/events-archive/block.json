@@ -21,6 +21,7 @@
     "onlyPastEvents":       { "type": "boolean", "default": false },
     "sortOrder":            { "type": "string",  "default": "ASC" },
     "filterByCategory":     { "type": "boolean", "default": false },
+    "catFilterMode":        { "type": "string",  "default": "include" },
     "catTermsSelected":     { "type": "string",  "default": "" },
     "hideIfEmpty":          { "type": "boolean", "default": true },
     "emptyMessage":         { "type": "string",  "default": "" },

@@ -57,6 +57,10 @@
       "type": "boolean",
       "default": false
     },
+    "catFilterMode": {
+      "type": "string",
+      "default": "include"
+    },
     "catTermsSelected": {
       "type": "string",
       "default": ""

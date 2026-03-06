@@ -45,6 +45,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		onlyPastEvents,
 		sortOrder,
 		filterByCategory,
+		catFilterMode,
 		catTermsSelected,
 		hideIfEmpty,
 		emptyMessage,
@@ -54,16 +55,15 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		showEndDateTime,
 	} = attributes;
 
-	// Parse contentSlots string into an array.
+	// -----------------------------------------------------------------------
+	// Content slots
+	// -----------------------------------------------------------------------
 	const slots = contentSlots ? contentSlots.split( ',' ).filter( Boolean ) : [];
 	const hasDateSlot = slots.some( ( s ) => DATE_SLOT_VALUES.includes( s ) );
 	const hasExcerptSlot = slots.includes( 'excerpt' );
 
-	// Number of select rows to show = filled slots + 1 empty one (up to MAX_SLOTS).
 	const visibleCount = Math.min( MAX_SLOTS, slots.length + 1 );
 
-	// Build the options for a given slot index, excluding values already used
-	// elsewhere (so each type can only appear once), except the current slot's own value.
 	const getSlotOptions = ( index ) => {
 		const current = slots[ index ] || '';
 		return SLOT_OPTIONS.filter(
@@ -81,7 +81,9 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		setAttributes( { contentSlots: next.filter( Boolean ).join( ',' ) } );
 	};
 
-	// Fetch event categories.
+	// -----------------------------------------------------------------------
+	// Categories
+	// -----------------------------------------------------------------------
 	const categories = useSelect( ( select ) => {
 		return select( 'core' ).getEntityRecords(
 			'taxonomy',
@@ -94,20 +96,184 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		? catTermsSelected.split( ',' ).map( Number ).filter( Boolean )
 		: [];
 
-	const toggleCategory = ( termId, checked ) => {
-		const next = checked
-			? [ ...selectedTermIds, termId ]
-			: selectedTermIds.filter( ( id ) => id !== termId );
-		setAttributes( { catTermsSelected: next.join( ',' ) } );
+	const handleCategoryMultiSelect = ( e ) => {
+		const selected = Array.from( e.target.selectedOptions ).map( ( opt ) =>
+			parseInt( opt.value, 10 )
+		);
+		setAttributes( { catTermsSelected: selected.join( ',' ) } );
 	};
+
+	// -----------------------------------------------------------------------
+	// Number of events — -1 means show all
+	// -----------------------------------------------------------------------
+	const showAll = numberOfPosts === -1;
 
 	return (
 		<InspectorControls>
 
+			{ /* Events Panel — first, open by default */ }
+			<PanelBody title={ __( 'Events', 'carkeek-events' ) } initialOpen={ true }>
+				<ToggleControl
+					label={ __( 'Show All Events', 'carkeek-events' ) }
+					help={ __( 'Ignore the number limit and load every matching event.', 'carkeek-events' ) }
+					checked={ showAll }
+					onChange={ ( value ) =>
+						setAttributes( { numberOfPosts: value ? -1 : 6 } )
+					}
+					__nextHasNoMarginBottom
+				/>
+				{ ! showAll && (
+					<RangeControl
+						label={ __( 'Number of Events', 'carkeek-events' ) }
+						value={ numberOfPosts }
+						onChange={ ( value ) => setAttributes( { numberOfPosts: value } ) }
+						min={ 1 }
+						max={ 50 }
+					/>
+				) }
+				<SelectControl
+					label={ __( 'Sort Order', 'carkeek-events' ) }
+					value={ sortOrder }
+					options={ [
+						{ label: __( 'Upcoming first (ASC)', 'carkeek-events' ), value: 'ASC' },
+						{ label: __( 'Latest first (DESC)', 'carkeek-events' ), value: 'DESC' },
+					] }
+					onChange={ ( value ) => setAttributes( { sortOrder: value } ) }
+					__nextHasNoMarginBottom
+				/>
+				<ToggleControl
+					label={ __( 'Include Past Events', 'carkeek-events' ) }
+					help={ __( 'Show events whose end date has already passed.', 'carkeek-events' ) }
+					checked={ includePastEvents }
+					onChange={ ( value ) => setAttributes( { includePastEvents: value, onlyPastEvents: value ? onlyPastEvents : false } ) }
+				/>
+				{ includePastEvents && (
+					<ToggleControl
+						label={ __( 'Only Past Events', 'carkeek-events' ) }
+						help={ __( 'Show only events that have ended.', 'carkeek-events' ) }
+						checked={ onlyPastEvents }
+						onChange={ ( value ) => setAttributes( { onlyPastEvents: value } ) }
+					/>
+				) }
+				<ToggleControl
+					label={ __( 'Filter by Category', 'carkeek-events' ) }
+					checked={ filterByCategory }
+					onChange={ ( value ) => setAttributes( { filterByCategory: value } ) }
+					__nextHasNoMarginBottom
+				/>
+				{ filterByCategory && (
+					<PanelRow>
+						<div style={ { width: '100%' } }>
+							<RadioControl
+								label={ __( 'Filter mode', 'carkeek-events' ) }
+								selected={ catFilterMode || 'include' }
+								options={ [
+									{ label: __( 'Include selected', 'carkeek-events' ), value: 'include' },
+									{ label: __( 'Exclude selected', 'carkeek-events' ), value: 'exclude' },
+								] }
+								onChange={ ( value ) => setAttributes( { catFilterMode: value } ) }
+							/>
+							{ categories ? (
+								<>
+									<p style={ { margin: '4px 0 4px', fontSize: 11, color: '#757575' } }>
+										{ __( 'Hold Ctrl / Cmd to select multiple.', 'carkeek-events' ) }
+									</p>
+									<select
+										multiple
+										size={ Math.min( 8, categories.length || 4 ) }
+										value={ selectedTermIds.map( String ) }
+										onChange={ handleCategoryMultiSelect }
+										style={ {
+											width: '100%',
+											minHeight: 100,
+											maxHeight: 180,
+											overflowY: 'auto',
+											border: '1px solid #949494',
+											borderRadius: 2,
+											padding: '2px 4px',
+											fontSize: 13,
+										} }
+									>
+										{ categories.map( ( term ) => (
+											<option key={ term.id } value={ String( term.id ) }>
+												{ term.name }
+											</option>
+										) ) }
+									</select>
+									{ selectedTermIds.length > 0 && (
+										<Button
+											variant="link"
+											isDestructive
+											style={ { marginTop: 4, fontSize: 11 } }
+											onClick={ () => setAttributes( { catTermsSelected: '' } ) }
+										>
+											{ __( 'Clear selection', 'carkeek-events' ) }
+										</Button>
+									) }
+								</>
+							) : (
+								<p style={ { fontSize: 12, color: '#757575' } }>
+									{ __( 'Loading categories…', 'carkeek-events' ) }
+								</p>
+							) }
+						</div>
+					</PanelRow>
+				) }
+			</PanelBody>
+
+			{ /* Layout Panel */ }
+			<PanelBody title={ __( 'Layout', 'carkeek-events' ) } initialOpen={ false }>
+				<RadioControl
+					label={ __( 'Post Layout', 'carkeek-events' ) }
+					selected={ postLayout }
+					options={ [
+						{ label: __( 'Grid', 'carkeek-events' ), value: 'grid' },
+						{ label: __( 'List', 'carkeek-events' ), value: 'list' },
+					] }
+					onChange={ ( value ) => setAttributes( { postLayout: value } ) }
+				/>
+				{ postLayout === 'grid' && (
+					<>
+						<RangeControl
+							label={ __( 'Columns (Desktop)', 'carkeek-events' ) }
+							value={ columns }
+							onChange={ ( value ) => setAttributes( { columns: value } ) }
+							min={ 1 }
+							max={ 6 }
+						/>
+						<RangeControl
+							label={ __( 'Columns (Tablet)', 'carkeek-events' ) }
+							value={ columnsTablet }
+							onChange={ ( value ) => setAttributes( { columnsTablet: value } ) }
+							min={ 1 }
+							max={ 4 }
+						/>
+						<RangeControl
+							label={ __( 'Columns (Mobile)', 'carkeek-events' ) }
+							value={ columnsMobile }
+							onChange={ ( value ) => setAttributes( { columnsMobile: value } ) }
+							min={ 1 }
+							max={ 2 }
+						/>
+					</>
+				) }
+				<ToggleControl
+					label={ __( 'Display Featured Image', 'carkeek-events' ) }
+					checked={ displayFeaturedImage }
+					onChange={ ( value ) => setAttributes( { displayFeaturedImage: value } ) }
+				/>
+				<ToggleControl
+					label={ __( 'Show Pagination', 'carkeek-events' ) }
+					checked={ showPagination }
+					onChange={ ( value ) => setAttributes( { showPagination: value } ) }
+					__nextHasNoMarginBottom
+				/>
+			</PanelBody>
+
 			{ /* Content Panel */ }
-			<PanelBody title={ __( 'Content', 'carkeek-events' ) } initialOpen={ true }>
+			<PanelBody title={ __( 'Content', 'carkeek-events' ) } initialOpen={ false }>
 				<p style={ { marginTop: 0, fontSize: 12, color: '#757575' } }>
-					{ __( 'Choose up to 5 content items. Drag to reorder — output matches this order.', 'carkeek-events' ) }
+					{ __( 'Choose up to 5 content items. Output matches this order.', 'carkeek-events' ) }
 				</p>
 
 				{ Array.from( { length: visibleCount } ).map( ( _, index ) => (
@@ -182,108 +348,6 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 				) }
 			</PanelBody>
 
-			{ /* Events Panel */ }
-			<PanelBody title={ __( 'Events', 'carkeek-events' ) } initialOpen={ false }>
-				<RangeControl
-					label={ __( 'Number of Events', 'carkeek-events' ) }
-					value={ numberOfPosts }
-					onChange={ ( value ) => setAttributes( { numberOfPosts: value } ) }
-					min={ 1 }
-					max={ 50 }
-				/>
-				<SelectControl
-					label={ __( 'Sort Order', 'carkeek-events' ) }
-					value={ sortOrder }
-					options={ [
-						{ label: __( 'Upcoming first (ASC)', 'carkeek-events' ), value: 'ASC' },
-						{ label: __( 'Latest first (DESC)', 'carkeek-events' ), value: 'DESC' },
-					] }
-					onChange={ ( value ) => setAttributes( { sortOrder: value } ) }
-				/>
-				<ToggleControl
-					label={ __( 'Include Past Events', 'carkeek-events' ) }
-					help={ __( 'Show events whose end date has already passed.', 'carkeek-events' ) }
-					checked={ includePastEvents }
-					onChange={ ( value ) => setAttributes( { includePastEvents: value, onlyPastEvents: value ? onlyPastEvents : false } ) }
-				/>
-				{ includePastEvents && (
-					<ToggleControl
-						label={ __( 'Only Past Events', 'carkeek-events' ) }
-						help={ __( 'Show only events that have ended.', 'carkeek-events' ) }
-						checked={ onlyPastEvents }
-						onChange={ ( value ) => setAttributes( { onlyPastEvents: value } ) }
-					/>
-				) }
-				<ToggleControl
-					label={ __( 'Filter by Category', 'carkeek-events' ) }
-					checked={ filterByCategory }
-					onChange={ ( value ) => setAttributes( { filterByCategory: value } ) }
-				/>
-				{ filterByCategory && categories && (
-					<PanelRow>
-						<fieldset style={ { width: '100%' } }>
-							<legend>{ __( 'Categories', 'carkeek-events' ) }</legend>
-							{ categories.map( ( term ) => (
-								<CheckboxControl
-									key={ term.id }
-									label={ term.name }
-									checked={ selectedTermIds.includes( term.id ) }
-									onChange={ ( checked ) => toggleCategory( term.id, checked ) }
-								/>
-							) ) }
-						</fieldset>
-					</PanelRow>
-				) }
-			</PanelBody>
-
-			{ /* Layout Panel */ }
-			<PanelBody title={ __( 'Layout', 'carkeek-events' ) } initialOpen={ false }>
-				<RadioControl
-					label={ __( 'Post Layout', 'carkeek-events' ) }
-					selected={ postLayout }
-					options={ [
-						{ label: __( 'Grid', 'carkeek-events' ), value: 'grid' },
-						{ label: __( 'List', 'carkeek-events' ), value: 'list' },
-					] }
-					onChange={ ( value ) => setAttributes( { postLayout: value } ) }
-				/>
-				{ postLayout === 'grid' && (
-					<>
-						<RangeControl
-							label={ __( 'Columns (Desktop)', 'carkeek-events' ) }
-							value={ columns }
-							onChange={ ( value ) => setAttributes( { columns: value } ) }
-							min={ 1 }
-							max={ 6 }
-						/>
-						<RangeControl
-							label={ __( 'Columns (Tablet)', 'carkeek-events' ) }
-							value={ columnsTablet }
-							onChange={ ( value ) => setAttributes( { columnsTablet: value } ) }
-							min={ 1 }
-							max={ 4 }
-						/>
-						<RangeControl
-							label={ __( 'Columns (Mobile)', 'carkeek-events' ) }
-							value={ columnsMobile }
-							onChange={ ( value ) => setAttributes( { columnsMobile: value } ) }
-							min={ 1 }
-							max={ 2 }
-						/>
-					</>
-				) }
-				<ToggleControl
-					label={ __( 'Display Featured Image', 'carkeek-events' ) }
-					checked={ displayFeaturedImage }
-					onChange={ ( value ) => setAttributes( { displayFeaturedImage: value } ) }
-				/>
-				<ToggleControl
-					label={ __( 'Show Pagination', 'carkeek-events' ) }
-					checked={ showPagination }
-					onChange={ ( value ) => setAttributes( { showPagination: value } ) }
-				/>
-			</PanelBody>
-
 			{ /* Behavior Panel */ }
 			<PanelBody title={ __( 'Behavior', 'carkeek-events' ) } initialOpen={ false }>
 				<ToggleControl
@@ -298,6 +362,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 						value={ emptyMessage }
 						placeholder={ __( 'No upcoming events.', 'carkeek-events' ) }
 						onChange={ ( value ) => setAttributes( { emptyMessage: value } ) }
+						__nextHasNoMarginBottom
 					/>
 				) }
 			</PanelBody>

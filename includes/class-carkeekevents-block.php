@@ -50,6 +50,29 @@ class CarkeekEvents_Block {
 	public static function register() {
 		$instance = new self();
 		add_action( 'init', array( $instance, 'register_block' ) );
+		add_action( 'enqueue_block_editor_assets', array( $instance, 'enqueue_event_editor' ) );
+	}
+
+	/**
+	 * Enqueue the event-editor sidebar plugin script for the carkeek_event post type.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	public function enqueue_event_editor() {
+		$asset_file = CARKEEKEVENTS_PLUGIN_DIR . 'build/event-editor/index.asset.php';
+		if ( ! file_exists( $asset_file ) ) {
+			return;
+		}
+		$asset = require $asset_file;
+		wp_enqueue_script(
+			'carkeek-event-editor',
+			CARKEEKEVENTS_PLUGIN_URL . 'build/event-editor/index.js',
+			$asset['dependencies'],
+			$asset['version'],
+			true
+		);
+		wp_set_script_translations( 'carkeek-event-editor', 'carkeek-events' );
 	}
 
 	/**
@@ -81,10 +104,12 @@ class CarkeekEvents_Block {
 	public function render( $attributes ) {
 		$now = current_time( 'Y-m-d\TH:i:s' );
 
+		$num_posts = isset( $attributes['numberOfPosts'] ) ? (int) $attributes['numberOfPosts'] : 6;
+
 		$args = array(
 			'post_type'      => 'carkeek_event',
 			'post_status'    => 'publish',
-			'posts_per_page' => isset( $attributes['numberOfPosts'] ) ? (int) $attributes['numberOfPosts'] : 6,
+			'posts_per_page' => ( -1 === $num_posts ) ? -1 : max( 1, $num_posts ),
 			'meta_key'       => '_carkeek_event_start',
 			'orderby'        => 'meta_value',
 			'order'          => ! empty( $attributes['sortOrder'] ) ? $attributes['sortOrder'] : 'ASC',
@@ -141,11 +166,15 @@ class CarkeekEvents_Block {
 			$term_ids = array_map( 'intval', explode( ',', $attributes['catTermsSelected'] ) );
 			$term_ids = array_filter( $term_ids );
 			if ( $term_ids ) {
+				$operator = ( isset( $attributes['catFilterMode'] ) && 'exclude' === $attributes['catFilterMode'] )
+					? 'NOT IN'
+					: 'IN';
 				$args['tax_query'] = array(
 					array(
 						'taxonomy' => 'carkeek_event_category',
 						'field'    => 'term_id',
 						'terms'    => $term_ids,
+						'operator' => $operator,
 					),
 				);
 			}
