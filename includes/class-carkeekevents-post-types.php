@@ -69,7 +69,7 @@ class CarkeekEvents_Post_Types {
 				'menu_icon'     => 'dashicons-calendar-alt',
 				'menu_position' => 5,
 				'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt' ),
-				'rewrite'       => array( 'slug' => 'events', 'with_front' => false ),
+				'rewrite'       => array( 'slug' => 'event', 'with_front' => false ),
 			)
 		);
 

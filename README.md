@@ -25,7 +25,7 @@ The plugin provides **no opinionated front-end styles**. It ships default templa
 
 | Post Type | Archive Slug | Single Slug | Menu Icon |
 |---|---|---|---|
-| `carkeek_event` | `/events/` | `/events/{slug}/` | dashicons-calendar-alt |
+| `carkeek_event` | `/events/` | `/event/{slug}/` | dashicons-calendar-alt |
 | `carkeek_location` | — | `/locations/{slug}/` | dashicons-location |
 | `carkeek_organizer` | — | `/organizers/{slug}/` | dashicons-groups |
 
@@ -77,53 +77,53 @@ The plugin provides **no opinionated front-end styles**. It ships default templa
 
 ## Display Helpers (`CarkeekEvents_Display`)
 
-The `CarkeekEvents_Display` class provides four static methods for rendering event data. Use these in any custom template — they handle formatting, settings-driven display modes, and the filterable output pattern.
+All display helpers accept just the **event post ID** — they fetch their own meta internally. Output everything with `wp_kses_post()`.
 
-All methods return escaped HTML strings. Output them with `wp_kses_post()`.
+```php
+$post_id    = get_the_ID(); // or $post->ID in a card template
+
+$date_range = CarkeekEvents_Display::get_date_range_html( $post_id );
+$location   = CarkeekEvents_Display::get_event_location_html( $post_id );
+$organizer  = CarkeekEvents_Display::get_event_organizer_html( $post_id );
+$event_link = CarkeekEvents_Display::get_event_link_html( $post_id );
+```
 
 ---
 
-### `format_date_range()`
+### `get_date_range_html( $post_id, $separator = ', ' )`
 
-Formats a start/end date and time pair into a human-readable string. Respects the Date Format and Time Format settings under **Events > Settings**; falls back to the site's WordPress date/time settings.
+Returns the event date/time range as HTML with date and time values wrapped in separate `<span>` tags. This lets you control layout entirely through CSS without touching PHP.
 
-**Same-day events:** `March 15, 2026, 10:00 am – 2:00 pm`
-**Multi-day events:** `March 15, 2026, 10:00 am – March 16, 2026, 5:00 pm`
+```html
+<!-- Default output (same-day with time range) -->
+<span class="carkeek-event-date">March 15, 2026</span>, <span class="carkeek-event-time">10:00 am &ndash; 2:00 pm</span>
 
-```php
-/**
- * @param string $start_date  YYYY-MM-DD
- * @param string $start_time  HH:MM (may be empty)
- * @param string $end_date    YYYY-MM-DD (may be empty)
- * @param string $end_time    HH:MM (may be empty)
- * @return string Formatted HTML string, or empty string if no start date.
- */
-CarkeekEvents_Display::format_date_range( $start_date, $start_time, $end_date, $end_time );
+<!-- Multi-day -->
+<span class="carkeek-event-date">March 15, 2026</span>, <span class="carkeek-event-time">10:00 am</span>
+&ndash;
+<span class="carkeek-event-date">March 16, 2026</span>, <span class="carkeek-event-time">5:00 pm</span>
 ```
 
-**Usage in a template:**
+**Display on two lines** — pass `'<br>'` as the separator, or use CSS:
 
 ```php
-$post_id    = get_the_ID();
-$date_range = CarkeekEvents_Display::format_date_range(
-    get_post_meta( $post_id, '_carkeek_event_start_date', true ),
-    get_post_meta( $post_id, '_carkeek_event_start_time', true ),
-    get_post_meta( $post_id, '_carkeek_event_end_date', true ),
-    get_post_meta( $post_id, '_carkeek_event_end_time', true )
-);
+// PHP separator approach
+$date_range = CarkeekEvents_Display::get_date_range_html( $post_id, '<br>' );
 
-if ( $date_range ) {
-    echo '<div class="event-dates">' . wp_kses_post( $date_range ) . '</div>';
-}
+// CSS approach (works with default separator)
+.carkeek-event-date,
+.carkeek-event-time { display: block; }
 ```
+
+Date and time formats respect the **Date Format** and **Time Format** settings under **Events > Settings**, falling back to WordPress site settings.
 
 **Filter:** `carkeek_events_date_range( $output, $start_date, $start_time, $end_date, $end_time )`
 
 ---
 
-### `get_location_html()`
+### `get_event_location_html( $post_id )`
 
-Builds the location display HTML per the **Location Display** setting in **Events > Settings**:
+Returns the location display HTML per the **Location Display** setting in **Events > Settings**:
 
 - `link` (default) — location name linked to its CPT single page
 - `address` — formatted address block (name, street, city, state/zip/country)
@@ -131,94 +131,47 @@ Builds the location display HTML per the **Location Display** setting in **Event
 
 Falls back to the free-text location string if no CPT post is linked.
 
-```php
-/**
- * @param int    $location_id   Linked carkeek_location post ID (0 if none).
- * @param string $location_text Free-text fallback.
- * @param int    $post_id       Parent event post ID (passed to filter).
- * @return string HTML, or empty string if nothing to display.
- */
-CarkeekEvents_Display::get_location_html( $location_id, $location_text, $post_id );
-```
-
-**Usage in a template:**
-
-```php
-$post_id      = get_the_ID();
-$location_id  = (int) get_post_meta( $post_id, '_carkeek_event_location_id', true );
-$location_txt = get_post_meta( $post_id, '_carkeek_event_location_text', true );
-$location_html = CarkeekEvents_Display::get_location_html( $location_id, $location_txt, $post_id );
-
-if ( $location_html ) {
-    echo '<div class="event-location">' . wp_kses_post( $location_html ) . '</div>';
-}
-```
-
 **Filter:** `carkeek_events_location_display( $html, $post_id )`
 
 ---
 
-### `get_organizer_html()`
+### `get_event_organizer_html( $post_id )`
 
-Builds the organizer display HTML per the **Organizer Display** setting in **Events > Settings**:
+Returns the organizer display HTML per the **Organizer Display** setting in **Events > Settings**:
 
 - `link` (default) — organizer name linked to their CPT single page
 - `info` — name + email (linked) + phone (linked) + website inline
 
 Falls back to the free-text organizer string if no CPT post is linked.
 
-```php
-/**
- * @param int    $organizer_id   Linked carkeek_organizer post ID (0 if none).
- * @param string $organizer_text Free-text fallback.
- * @param int    $post_id        Parent event post ID (passed to filter).
- * @return string HTML, or empty string if nothing to display.
- */
-CarkeekEvents_Display::get_organizer_html( $organizer_id, $organizer_text, $post_id );
-```
-
-**Usage in a template:**
-
-```php
-$post_id       = get_the_ID();
-$org_id        = (int) get_post_meta( $post_id, '_carkeek_event_organizer_id', true );
-$org_txt       = get_post_meta( $post_id, '_carkeek_event_organizer_text', true );
-$organizer_html = CarkeekEvents_Display::get_organizer_html( $org_id, $org_txt, $post_id );
-
-if ( $organizer_html ) {
-    echo '<div class="event-organizer">' . wp_kses_post( $organizer_html ) . '</div>';
-}
-```
-
 **Filter:** `carkeek_events_organizer_display( $html, $post_id )`
 
 ---
 
-### `get_event_link_html()`
+### `get_event_link_html( $post_id )`
 
-Returns an `<a>` tag linking to the event's website/registration URL (`_carkeek_event_website`). The label comes from `_carkeek_event_button_label`, defaulting to "Sign Up" when blank. Returns empty string if no URL is set.
+Returns an `<a>` tag linking to the event's website/registration URL. The label comes from the **Button Label** meta field, defaulting to "Sign Up" when blank. Returns empty string if no URL is set.
 
-The `<a>` tag includes the class `wp-element-button` so it picks up the theme's button styles automatically.
-
-```php
-/**
- * @param int $post_id Event post ID.
- * @return string HTML <a> tag, or empty string if no URL is set.
- */
-CarkeekEvents_Display::get_event_link_html( $post_id );
-```
-
-**Usage in a template:**
-
-```php
-$event_link = CarkeekEvents_Display::get_event_link_html( get_the_ID() );
-
-if ( $event_link ) {
-    echo '<div class="event-link">' . wp_kses_post( $event_link ) . '</div>';
-}
-```
+The `<a>` tag includes the class `wp-element-button` so it inherits the theme's button styles automatically.
 
 **Filter:** `carkeek_events_link_html( $html, $post_id, $url, $label )`
+
+---
+
+### Low-level helpers (advanced use)
+
+The convenience wrappers above call these underlying methods, which you can use directly when you need more control:
+
+```php
+// format_date_range: pass raw meta values + optional separator
+CarkeekEvents_Display::format_date_range( $start_date, $start_time, $end_date, $end_time, $separator );
+
+// get_location_html: pass location ID + text fallback + event post ID
+CarkeekEvents_Display::get_location_html( $location_id, $location_text, $post_id );
+
+// get_organizer_html: pass organizer ID + text fallback + event post ID
+CarkeekEvents_Display::get_organizer_html( $organizer_id, $organizer_text, $post_id );
+```
 
 ---
 
@@ -245,24 +198,11 @@ get_header();
 while ( have_posts() ) :
     the_post();
 
-    $post_id       = get_the_ID();
-    $date_range    = CarkeekEvents_Display::format_date_range(
-        get_post_meta( $post_id, '_carkeek_event_start_date', true ),
-        get_post_meta( $post_id, '_carkeek_event_start_time', true ),
-        get_post_meta( $post_id, '_carkeek_event_end_date', true ),
-        get_post_meta( $post_id, '_carkeek_event_end_time', true )
-    );
-    $location_html = CarkeekEvents_Display::get_location_html(
-        (int) get_post_meta( $post_id, '_carkeek_event_location_id', true ),
-        get_post_meta( $post_id, '_carkeek_event_location_text', true ),
-        $post_id
-    );
-    $organizer_html = CarkeekEvents_Display::get_organizer_html(
-        (int) get_post_meta( $post_id, '_carkeek_event_organizer_id', true ),
-        get_post_meta( $post_id, '_carkeek_event_organizer_text', true ),
-        $post_id
-    );
-    $event_link = CarkeekEvents_Display::get_event_link_html( $post_id );
+    $post_id        = get_the_ID();
+    $date_range     = CarkeekEvents_Display::get_date_range_html( $post_id );
+    $location_html  = CarkeekEvents_Display::get_event_location_html( $post_id );
+    $organizer_html = CarkeekEvents_Display::get_event_organizer_html( $post_id );
+    $event_link     = CarkeekEvents_Display::get_event_link_html( $post_id );
     ?>
 
     <article <?php post_class( 'my-event' ); ?>>
@@ -316,24 +256,11 @@ if ( ! isset( $post ) ) {
     $post = get_post();
 }
 
-$post_id       = $post->ID;
-$date_range    = CarkeekEvents_Display::format_date_range(
-    get_post_meta( $post_id, '_carkeek_event_start_date', true ),
-    get_post_meta( $post_id, '_carkeek_event_start_time', true ),
-    get_post_meta( $post_id, '_carkeek_event_end_date', true ),
-    get_post_meta( $post_id, '_carkeek_event_end_time', true )
-);
-$location_html = CarkeekEvents_Display::get_location_html(
-    (int) get_post_meta( $post_id, '_carkeek_event_location_id', true ),
-    get_post_meta( $post_id, '_carkeek_event_location_text', true ),
-    $post_id
-);
-$organizer_html = CarkeekEvents_Display::get_organizer_html(
-    (int) get_post_meta( $post_id, '_carkeek_event_organizer_id', true ),
-    get_post_meta( $post_id, '_carkeek_event_organizer_text', true ),
-    $post_id
-);
-$event_link = CarkeekEvents_Display::get_event_link_html( $post_id );
+$post_id        = $post->ID;
+$date_range     = CarkeekEvents_Display::get_date_range_html( $post_id );
+$location_html  = CarkeekEvents_Display::get_event_location_html( $post_id );
+$organizer_html = CarkeekEvents_Display::get_event_organizer_html( $post_id );
+$event_link     = CarkeekEvents_Display::get_event_link_html( $post_id );
 ?>
 
 <div class="my-event-card">

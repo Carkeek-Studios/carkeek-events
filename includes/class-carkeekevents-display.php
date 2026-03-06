@@ -23,12 +23,39 @@ class CarkeekEvents_Display {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Format an event date/time range into a human-readable string.
+	 * Get the formatted date/time range HTML for an event, fetching meta automatically.
 	 *
-	 * Same-day rule: if start and end share the same date, output is
-	 *   {date}, {start time} – {end time}
-	 * Multi-day rule:
-	 *   {start date}, {start time} – {end date}, {end time}
+	 * Convenience wrapper — pass the event post ID and get back fully marked-up HTML.
+	 * Date and time are wrapped in separate <span> tags so templates can control
+	 * layout via CSS (e.g. display:block for separate lines, or inline with comma).
+	 *
+	 * Fires the `carkeek_events_date_range` filter so developers can override.
+	 *
+	 * @since 1.1.0
+	 * @param int    $post_id   Event post ID.
+	 * @param string $separator Separator rendered between the date span and time span.
+	 *                          Defaults to ', '. Pass '<br>' to stack on separate lines,
+	 *                          or '' to rely purely on CSS.
+	 * @return string HTML string, or empty string if no start date is set.
+	 */
+	public static function get_date_range_html( $post_id, $separator = ', ' ) {
+		$start_date = get_post_meta( $post_id, '_carkeek_event_start_date', true );
+		$start_time = get_post_meta( $post_id, '_carkeek_event_start_time', true );
+		$end_date   = get_post_meta( $post_id, '_carkeek_event_end_date', true );
+		$end_time   = get_post_meta( $post_id, '_carkeek_event_end_time', true );
+
+		return self::format_date_range( $start_date, $start_time, $end_date, $end_time, $separator );
+	}
+
+	/**
+	 * Format an event date/time range into span-wrapped HTML.
+	 *
+	 * Date values are wrapped in <span class="carkeek-event-date"> and time values
+	 * in <span class="carkeek-event-time"> so CSS can control whether they appear
+	 * on one line or two without touching PHP.
+	 *
+	 * Same-day: <date> {separator} <start-time> &ndash; <end-time>
+	 * Multi-day: <start-date> {separator} <start-time> &ndash; <end-date> {separator} <end-time>
 	 *
 	 * Fires the `carkeek_events_date_range` filter so developers can override.
 	 *
@@ -37,9 +64,10 @@ class CarkeekEvents_Display {
 	 * @param string $start_time H:i  (may be empty)
 	 * @param string $end_date   Y-m-d (may be empty)
 	 * @param string $end_time   H:i  (may be empty)
-	 * @return string Formatted, escaped HTML string.
+	 * @param string $separator  Separator between date and time spans. Default ', '.
+	 * @return string Formatted HTML string.
 	 */
-	public static function format_date_range( $start_date, $start_time, $end_date, $end_time ) {
+	public static function format_date_range( $start_date, $start_time, $end_date, $end_time, $separator = ', ' ) {
 		if ( ! $start_date ) {
 			return '';
 		}
@@ -50,27 +78,35 @@ class CarkeekEvents_Display {
 
 		$start_ts = strtotime( $start_date );
 		$end_ts   = ( $end_date && $end_date !== $start_date ) ? strtotime( $end_date ) : 0;
-		$same_day = ! $end_ts; // no end_ts means same day (or no end date).
+		$same_day = ! $end_ts;
 
-		$output = date_i18n( $date_format, $start_ts );
+		$start_date_str = '<span class="carkeek-event-date">' . esc_html( date_i18n( $date_format, $start_ts ) ) . '</span>';
+
+		$output = $start_date_str;
 
 		if ( $start_time ) {
-			$start_time_ts = strtotime( $start_date . ' ' . $start_time );
-			$output       .= ', ' . date_i18n( $time_format, $start_time_ts );
+			$start_time_ts  = strtotime( $start_date . ' ' . $start_time );
+			$start_time_str = date_i18n( $time_format, $start_time_ts );
+
+			if ( $same_day && $end_time ) {
+				// Same day with end time: show time range in a single time span.
+				$end_time_ts    = strtotime( $start_date . ' ' . $end_time );
+				$end_time_str   = date_i18n( $time_format, $end_time_ts );
+				$output .= $separator . '<span class="carkeek-event-time">' . esc_html( $start_time_str ) . ' &ndash; ' . esc_html( $end_time_str ) . '</span>';
+			} else {
+				$output .= $separator . '<span class="carkeek-event-time">' . esc_html( $start_time_str ) . '</span>';
+			}
 		}
 
-		if ( $same_day ) {
-			// Same day: append end time if present.
-			if ( $start_time && $end_time ) {
-				$end_time_ts = strtotime( $start_date . ' ' . $end_time );
-				$output     .= ' &ndash; ' . date_i18n( $time_format, $end_time_ts );
-			}
-		} else {
-			// Multi-day: append full end date (and time if present).
-			$output .= ' &ndash; ' . date_i18n( $date_format, $end_ts );
+		if ( ! $same_day ) {
+			// Multi-day: append end date (and end time if present).
+			$end_date_str = '<span class="carkeek-event-date">' . esc_html( date_i18n( $date_format, $end_ts ) ) . '</span>';
+			$output      .= ' &ndash; ' . $end_date_str;
+
 			if ( $end_time ) {
-				$end_time_ts = strtotime( $end_date . ' ' . $end_time );
-				$output     .= ', ' . date_i18n( $time_format, $end_time_ts );
+				$end_time_ts  = strtotime( $end_date . ' ' . $end_time );
+				$end_time_str = date_i18n( $time_format, $end_time_ts );
+				$output      .= $separator . '<span class="carkeek-event-time">' . esc_html( $end_time_str ) . '</span>';
 			}
 		}
 
@@ -80,6 +116,22 @@ class CarkeekEvents_Display {
 	// -----------------------------------------------------------------------
 	// Location display
 	// -----------------------------------------------------------------------
+
+	/**
+	 * Get the location HTML for an event by post ID, fetching meta automatically.
+	 *
+	 * Convenience wrapper — pass the event post ID and get back fully marked-up HTML
+	 * without having to retrieve location meta keys manually in the template.
+	 *
+	 * @since 1.1.0
+	 * @param int $post_id Event post ID.
+	 * @return string HTML, or empty string if no location is set.
+	 */
+	public static function get_event_location_html( $post_id ) {
+		$location_id   = (int) get_post_meta( $post_id, '_carkeek_event_location_id', true );
+		$location_text = get_post_meta( $post_id, '_carkeek_event_location_text', true );
+		return self::get_location_html( $location_id, $location_text, $post_id );
+	}
 
 	/**
 	 * Build location HTML per the `location_display` setting.
@@ -218,6 +270,22 @@ class CarkeekEvents_Display {
 	// -----------------------------------------------------------------------
 	// Organizer display
 	// -----------------------------------------------------------------------
+
+	/**
+	 * Get the organizer HTML for an event by post ID, fetching meta automatically.
+	 *
+	 * Convenience wrapper — pass the event post ID and get back fully marked-up HTML
+	 * without having to retrieve organizer meta keys manually in the template.
+	 *
+	 * @since 1.1.0
+	 * @param int $post_id Event post ID.
+	 * @return string HTML, or empty string if no organizer is set.
+	 */
+	public static function get_event_organizer_html( $post_id ) {
+		$organizer_id   = (int) get_post_meta( $post_id, '_carkeek_event_organizer_id', true );
+		$organizer_text = get_post_meta( $post_id, '_carkeek_event_organizer_text', true );
+		return self::get_organizer_html( $organizer_id, $organizer_text, $post_id );
+	}
 
 	/**
 	 * Build organizer HTML per the `organizer_display` setting.
