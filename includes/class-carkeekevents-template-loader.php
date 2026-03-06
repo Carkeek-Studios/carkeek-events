@@ -78,7 +78,8 @@ function carkeek_events_register_template_hooks() {
 	add_filter( 'single_template', 'carkeek_events_single_template' );
 
 	// Card template for carkeek-blocks custom-archive block.
-	add_filter( 'carkeek_block_custom_post_layout__template', 'carkeek_events_card_template', 10, 3 );
+	// Note: carkeek_block_custom_post_layout__template passes (template, attributes) — 2 args only.
+	add_filter( 'carkeek_block_custom_post_layout__template', 'carkeek_events_card_template', 10, 2 );
 }
 add_action( 'plugins_loaded', 'carkeek_events_register_template_hooks', 20 );
 
@@ -127,13 +128,16 @@ function carkeek_events_single_template( $template ) {
 /**
  * Return the event card template path for carkeek-blocks custom-archive block.
  *
+ * carkeek_block_custom_post_layout__template passes only (template, attributes).
+ * The current post is retrieved via get_post().
+ *
  * @since 1.0.0
- * @param string  $template   Default template path from carkeek-blocks.
- * @param array   $attributes Block attributes.
- * @param WP_Post $post       Current post.
+ * @param string $template   Default template path from carkeek-blocks.
+ * @param array  $attributes Block attributes.
  * @return string
  */
-function carkeek_events_card_template( $template, $attributes, $post ) {
+function carkeek_events_card_template( $template, $attributes ) {
+	$post = get_post();
 	if ( ! $post || 'carkeek_event' !== $post->post_type ) {
 		return $template;
 	}

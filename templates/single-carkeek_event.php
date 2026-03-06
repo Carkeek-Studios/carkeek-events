@@ -14,20 +14,12 @@ get_header();
 while ( have_posts() ) :
 	the_post();
 
-	$post_id        = get_the_ID();
-	$start_date     = get_post_meta( $post_id, '_carkeek_event_start_date', true );
-	$start_time     = get_post_meta( $post_id, '_carkeek_event_start_time', true );
-	$end_date       = get_post_meta( $post_id, '_carkeek_event_end_date', true );
-	$end_time       = get_post_meta( $post_id, '_carkeek_event_end_time', true );
-	$location_id    = (int) get_post_meta( $post_id, '_carkeek_event_location_id', true );
-	$location_text  = get_post_meta( $post_id, '_carkeek_event_location_text', true );
-	$organizer_id   = (int) get_post_meta( $post_id, '_carkeek_event_organizer_id', true );
-	$organizer_text = get_post_meta( $post_id, '_carkeek_event_organizer_text', true );
+	$post_id    = get_the_ID();
 
-	$date_range        = CarkeekEvents_Display::format_date_range( $start_date, $start_time, $end_date, $end_time );
-	$location_display  = CarkeekEvents_Display::get_location_html( $location_id, $location_text, $post_id );
-	$organizer_display = CarkeekEvents_Display::get_organizer_html( $organizer_id, $organizer_text, $post_id );
-	$event_link        = CarkeekEvents_Display::get_event_link_html( $post_id );
+	$date_range = CarkeekEvents_Display::get_date_range_html( $post_id );
+	$location   = CarkeekEvents_Display::get_event_location_html( $post_id );
+	$organizer  = CarkeekEvents_Display::get_event_organizer_html( $post_id );
+	$event_link = CarkeekEvents_Display::get_event_link_html( $post_id );
 	?>
 
 	<article id="post-<?php the_ID(); ?>" <?php post_class( 'carkeek-event' ); ?>>
@@ -48,15 +40,15 @@ while ( have_posts() ) :
 					</div>
 				<?php endif; ?>
 
-				<?php if ( $location_display ) : ?>
+				<?php if ( $location ) : ?>
 					<div class="carkeek-event__location">
-						<?php echo wp_kses_post( $location_display ); ?>
+						<?php echo wp_kses_post( $location ); ?>
 					</div>
 				<?php endif; ?>
 
-				<?php if ( $organizer_display ) : ?>
+				<?php if ( $organizer ) : ?>
 					<div class="carkeek-event__organizer">
-						<?php echo wp_kses_post( $organizer_display ); ?>
+						<?php echo wp_kses_post( $organizer ); ?>
 					</div>
 				<?php endif; ?>
 
