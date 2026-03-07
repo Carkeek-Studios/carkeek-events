@@ -74,7 +74,7 @@ class CarkeekEvents_Post_Types {
 				'has_archive'   => $has_archive,
 				'menu_icon'     => 'dashicons-calendar-alt',
 				'menu_position' => 5,
-				'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt' ),
+				'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt', 'custom-fields' ),
 				'rewrite'       => array( 'slug' => 'event', 'with_front' => false ),
 			)
 		);
