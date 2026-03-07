@@ -51,6 +51,8 @@ class CarkeekEvents_Block {
 		$instance = new self();
 		add_action( 'init', array( $instance, 'register_block' ) );
 		add_action( 'enqueue_block_editor_assets', array( $instance, 'enqueue_event_editor' ) );
+		add_action( 'wp_ajax_carkeek_events_load_more',        array( $instance, 'ajax_load_more' ) );
+		add_action( 'wp_ajax_nopriv_carkeek_events_load_more', array( $instance, 'ajax_load_more' ) );
 	}
 
 	/**
@@ -102,86 +104,7 @@ class CarkeekEvents_Block {
 	 * @return string Rendered HTML.
 	 */
 	public function render( $attributes ) {
-		$now = current_time( 'Y-m-d\TH:i:s' );
-
-		$num_posts = isset( $attributes['numberOfPosts'] ) ? (int) $attributes['numberOfPosts'] : 6;
-
-		$args = array(
-			'post_type'      => 'carkeek_event',
-			'post_status'    => 'publish',
-			'posts_per_page' => ( -1 === $num_posts ) ? -1 : max( 1, $num_posts ),
-			'meta_key'       => '_carkeek_event_start',
-			'orderby'        => 'meta_value',
-			'order'          => ! empty( $attributes['sortOrder'] ) ? $attributes['sortOrder'] : 'ASC',
-			'meta_query'     => array(
-				'relation' => 'AND',
-				// Exclude hidden events.
-				array(
-					'relation' => 'OR',
-					array(
-						'key'     => '_carkeek_event_hidden',
-						'compare' => 'NOT EXISTS',
-					),
-					array(
-						'key'     => '_carkeek_event_hidden',
-						'value'   => '1',
-						'compare' => '!=',
-					),
-				),
-			),
-		);
-
-		$include_past = ! empty( $attributes['includePastEvents'] );
-		$only_past    = ! empty( $attributes['onlyPastEvents'] );
-
-		if ( $only_past ) {
-			$args['meta_query'][] = array(
-				'key'     => '_carkeek_event_end',
-				'value'   => $now,
-				'compare' => '<',
-				'type'    => 'CHAR',
-			);
-		} elseif ( ! $include_past ) {
-			$args['meta_query'][] = array(
-				'relation' => 'OR',
-				array(
-					'key'     => '_carkeek_event_end',
-					'compare' => 'NOT EXISTS',
-				),
-				array(
-					'key'     => '_carkeek_event_end',
-					'value'   => '',
-					'compare' => '=',
-				),
-				array(
-					'key'     => '_carkeek_event_end',
-					'value'   => $now,
-					'compare' => '>=',
-					'type'    => 'CHAR',
-				),
-			);
-		}
-
-		if ( ! empty( $attributes['filterByCategory'] ) && ! empty( $attributes['catTermsSelected'] ) ) {
-			$term_ids = array_map( 'intval', explode( ',', $attributes['catTermsSelected'] ) );
-			$term_ids = array_filter( $term_ids );
-			if ( $term_ids ) {
-				$operator = ( isset( $attributes['catFilterMode'] ) && 'exclude' === $attributes['catFilterMode'] )
-					? 'NOT IN'
-					: 'IN';
-				$args['tax_query'] = array(
-					array(
-						'taxonomy' => 'carkeek_event_category',
-						'field'    => 'term_id',
-						'terms'    => $term_ids,
-						'operator' => $operator,
-					),
-				);
-			}
-		}
-
-		$args  = apply_filters( 'carkeek_events_block_query_args', $args, $attributes );
-		$query = new WP_Query( $args );
+		$query = new WP_Query( $this->build_query_args( $attributes ) );
 
 		if ( ! $query->have_posts() ) {
 			if ( ! empty( $attributes['hideIfEmpty'] ) ) {
@@ -198,60 +121,226 @@ class CarkeekEvents_Block {
 		$tablet  = ! empty( $attributes['columnsTablet'] ) ? (int) $attributes['columnsTablet'] : 2;
 		$mobile  = ! empty( $attributes['columnsMobile'] ) ? (int) $attributes['columnsMobile'] : 1;
 
-		$classes = array_filter( array(
+		$list_classes = array_filter( array(
 			'carkeek-events-archive',
+			'carkeek-events-archive__list',
 			'is-' . esc_attr( $layout ),
 			'grid' === $layout ? 'columns-' . $columns : '',
 			'grid' === $layout ? 'columns-tablet-' . $tablet : '',
 			'grid' === $layout ? 'columns-mobile-' . $mobile : '',
-			! empty( $attributes['className'] ) ? esc_attr( $attributes['className'] ) : '',
 		) );
 
-		// Parse content slots — default to title + date_time.
 		$slots = ! empty( $attributes['contentSlots'] )
 			? array_filter( explode( ',', $attributes['contentSlots'] ) )
 			: array( 'title', 'date_time' );
 
+		$wrapper_attrs = get_block_wrapper_attributes( array( 'class' => 'carkeek-events-archive-block' ) );
+
 		ob_start();
-		echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '">';
+		echo '<div ' . $wrapper_attrs . '>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+
+		if ( ! empty( $attributes['headline'] ) ) {
+			echo '<h2 class="carkeek-events-archive__headline">' . esc_html( $attributes['headline'] ) . '</h2>';
+		}
+
+		echo '<div class="' . esc_attr( implode( ' ', $list_classes ) ) . '">';
 
 		while ( $query->have_posts() ) {
 			$query->the_post();
 			$post_id   = get_the_ID();
 			$permalink = get_permalink( $post_id );
-
-			echo '<div class="carkeek-event-card">';
-
-			// Featured image renders before slot content.
-			if ( ! empty( $attributes['displayFeaturedImage'] ) && has_post_thumbnail( $post_id ) ) {
-				echo '<a class="carkeek-event-card__image-link" href="' . esc_url( $permalink ) . '">';
-				echo get_the_post_thumbnail( $post_id, 'medium_large' );
-				echo '</a>';
-			}
-
-			echo '<div class="carkeek-event-card__content">';
-
-			foreach ( $slots as $slot ) {
-				$slot_html = $this->render_slot( $slot, $post_id, $permalink, $attributes );
-				if ( '' !== $slot_html ) {
-					echo '<div class="carkeek-event-card__slot carkeek-event-card__slot--' . esc_attr( $slot ) . '">';
-					echo $slot_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					echo '</div>';
-				}
-			}
-
-			echo '</div>'; // .carkeek-event-card__content
-			echo '</div>'; // .carkeek-event-card
+			echo $this->render_single_card( $post_id, $permalink, $slots, $attributes ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
 		wp_reset_postdata();
-		echo '</div>'; // .carkeek-events-archive
+		echo '</div>'; // .carkeek-events-archive__list
 
 		if ( ! empty( $attributes['showPagination'] ) ) {
 			echo paginate_links( array( 'total' => $query->max_num_pages ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 
+		$num_posts = isset( $attributes['numberOfPosts'] ) ? (int) $attributes['numberOfPosts'] : 6;
+		if ( ! empty( $attributes['enableLoadMore'] ) && -1 !== $num_posts && $query->found_posts > $num_posts ) {
+			$label           = ! empty( $attributes['loadMoreLabel'] ) ? $attributes['loadMoreLabel'] : __( 'Load More', 'carkeek-events' );
+			$load_more_attrs = array_merge( $attributes, array( 'showPagination' => false ) );
+			echo '<div class="carkeek-events-archive__load-more-wrap">';
+			echo '<button type="button" class="button js-carkeek-events-load-more"'
+				. ' data-ajax-url="' . esc_url( admin_url( 'admin-ajax.php' ) ) . '"'
+				. ' data-nonce="' . esc_attr( wp_create_nonce( 'carkeek_events_load_more' ) ) . '"'
+				. ' data-current-page="1"'
+				. ' data-default-label="' . esc_attr( $label ) . '"'
+				. ' data-loading-label="' . esc_attr( __( 'Loading\u2026', 'carkeek-events' ) ) . '"'
+				. ' data-error-label="' . esc_attr( __( 'Unable to load more events.', 'carkeek-events' ) ) . '"'
+				. ' data-attributes="' . esc_attr( wp_json_encode( $load_more_attrs ) ) . '"'
+				. '>' . esc_html( $label ) . '</button>';
+			echo '<div class="carkeek-events-archive__load-more-status js-carkeek-events-load-more-status" aria-live="polite"></div>';
+			echo '</div>';
+		}
+
+		echo '</div>'; // .carkeek-events-archive-block
+
 		return ob_get_clean();
+	}
+
+	// -----------------------------------------------------------------------
+	// Query builder (shared by render() and ajax_load_more())
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Build WP_Query args from block attributes, with an optional offset for pagination.
+	 *
+	 * @since 2.0.0
+	 * @param array $attributes Block attributes.
+	 * @param int   $offset     Row offset for load-more pages (0 = first page).
+	 * @return array WP_Query args (already passed through the filter).
+	 */
+	private function build_query_args( $attributes, $offset = 0 ) {
+		$now       = current_time( 'Y-m-d\TH:i:s' );
+		$num_posts = isset( $attributes['numberOfPosts'] ) ? (int) $attributes['numberOfPosts'] : 6;
+
+		$args = array(
+			'post_type'      => 'carkeek_event',
+			'post_status'    => 'publish',
+			'posts_per_page' => ( -1 === $num_posts ) ? -1 : max( 1, $num_posts ),
+			'meta_key'       => '_carkeek_event_start',
+			'orderby'        => 'meta_value',
+			'order'          => ! empty( $attributes['sortOrder'] ) ? $attributes['sortOrder'] : 'ASC',
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'relation' => 'OR',
+					array( 'key' => '_carkeek_event_hidden', 'compare' => 'NOT EXISTS' ),
+					array( 'key' => '_carkeek_event_hidden', 'value'   => '1', 'compare' => '!=' ),
+				),
+			),
+		);
+
+		if ( $offset > 0 ) {
+			$args['offset'] = $offset;
+		}
+
+		$include_past = ! empty( $attributes['includePastEvents'] );
+		$only_past    = ! empty( $attributes['onlyPastEvents'] );
+
+		if ( $only_past ) {
+			$args['meta_query'][] = array(
+				'key' => '_carkeek_event_end', 'value' => $now, 'compare' => '<', 'type' => 'CHAR',
+			);
+		} elseif ( ! $include_past ) {
+			$args['meta_query'][] = array(
+				'relation' => 'OR',
+				array( 'key' => '_carkeek_event_end', 'compare' => 'NOT EXISTS' ),
+				array( 'key' => '_carkeek_event_end', 'value'   => '', 'compare' => '=' ),
+				array( 'key' => '_carkeek_event_end', 'value'   => $now, 'compare' => '>=', 'type' => 'CHAR' ),
+			);
+		}
+
+		if ( ! empty( $attributes['filterByCategory'] ) && ! empty( $attributes['catTermsSelected'] ) ) {
+			$term_ids = array_filter( array_map( 'intval', explode( ',', $attributes['catTermsSelected'] ) ) );
+			if ( $term_ids ) {
+				$operator = ( isset( $attributes['catFilterMode'] ) && 'exclude' === $attributes['catFilterMode'] )
+					? 'NOT IN' : 'IN';
+				$args['tax_query'] = array(
+					array(
+						'taxonomy' => 'carkeek_event_category',
+						'field'    => 'term_id',
+						'terms'    => $term_ids,
+						'operator' => $operator,
+					),
+				);
+			}
+		}
+
+		return apply_filters( 'carkeek_events_block_query_args', $args, $attributes );
+	}
+
+	/**
+	 * Render a single event card (used by both render() and ajax_load_more()).
+	 *
+	 * @since 2.0.0
+	 * @param int    $post_id    Event post ID (must be the current post in the loop).
+	 * @param string $permalink  Event permalink.
+	 * @param array  $slots      Ordered slot identifiers.
+	 * @param array  $attributes Block attributes.
+	 * @return string HTML for the card.
+	 */
+	private function render_single_card( $post_id, $permalink, $slots, $attributes ) {
+		$html = '<div class="carkeek-event-card">';
+
+		if ( ! empty( $attributes['displayFeaturedImage'] ) && has_post_thumbnail( $post_id ) ) {
+			$html .= '<a class="carkeek-event-card__image-link" href="' . esc_url( $permalink ) . '">';
+			$html .= get_the_post_thumbnail( $post_id, 'medium_large' );
+			$html .= '</a>';
+		}
+
+		$html .= '<div class="carkeek-event-card__content">';
+
+		foreach ( $slots as $slot ) {
+			$slot_html = $this->render_slot( $slot, $post_id, $permalink, $attributes );
+			if ( '' !== $slot_html ) {
+				$html .= '<div class="carkeek-event-card__slot carkeek-event-card__slot--' . esc_attr( $slot ) . '">';
+				$html .= $slot_html; // already escaped in each render_* method
+				$html .= '</div>';
+			}
+		}
+
+		$html .= '</div>'; // .carkeek-event-card__content
+		$html .= '</div>'; // .carkeek-event-card
+
+		return $html;
+	}
+
+	/**
+	 * AJAX handler for the Load More button.
+	 *
+	 * @since 2.0.0
+	 * @return void Sends JSON and exits.
+	 */
+	public function ajax_load_more() {
+		if ( ! check_ajax_referer( 'carkeek_events_load_more', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce.' ), 403 );
+		}
+
+		$attributes_json = isset( $_POST['attributes'] ) ? wp_unslash( $_POST['attributes'] ) : ''; // phpcs:ignore
+		$attributes      = json_decode( $attributes_json, true );
+		$page            = isset( $_POST['page'] ) ? absint( $_POST['page'] ) : 2; // phpcs:ignore
+
+		if ( ! is_array( $attributes ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid attributes.' ), 400 );
+		}
+
+		$page     = max( 2, $page );
+		$per_page = isset( $attributes['numberOfPosts'] ) ? (int) $attributes['numberOfPosts'] : 6;
+
+		if ( $per_page <= 0 ) {
+			wp_send_json_error( array( 'message' => 'Show-all mode does not support load more.' ), 400 );
+		}
+
+		$offset = ( $page - 1 ) * $per_page;
+		$query  = new WP_Query( $this->build_query_args( $attributes, $offset ) );
+
+		$slots = ! empty( $attributes['contentSlots'] )
+			? array_filter( explode( ',', $attributes['contentSlots'] ) )
+			: array( 'title', 'date_time' );
+
+		$items_html = '';
+		if ( $query->have_posts() ) {
+			while ( $query->have_posts() ) {
+				$query->the_post();
+				$post_id    = get_the_ID();
+				$permalink  = get_permalink( $post_id );
+				$items_html .= $this->render_single_card( $post_id, $permalink, $slots, $attributes );
+			}
+		}
+
+		$has_more = ( $offset + $per_page ) < (int) $query->found_posts;
+		wp_reset_postdata();
+
+		wp_send_json_success( array(
+			'itemsHtml' => $items_html,
+			'nextPage'  => $page,
+			'hasMore'   => $has_more,
+		) );
 	}
 
 	// -----------------------------------------------------------------------

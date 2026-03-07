@@ -26,13 +26,21 @@
     "hideIfEmpty":          { "type": "boolean", "default": true },
     "emptyMessage":         { "type": "string",  "default": "" },
     "className":            { "type": "string",  "default": "" },
+    "headline":             { "type": "string",  "default": "" },
+    "enableLoadMore":       { "type": "boolean", "default": false },
+    "loadMoreLabel":        { "type": "string",  "default": "" },
     "contentSlots":         { "type": "string",  "default": "title,date_time" },
     "slotDateFormat":       { "type": "string",  "default": "" },
     "slotTimeFormat":       { "type": "string",  "default": "" },
     "showEndDateTime":      { "type": "boolean", "default": true }
   },
+  "viewScript": "file:./view.js",
   "supports": {
     "align": ["wide", "full"],
+    "color": {
+      "background": true,
+      "text": true
+    },
     "spacing": {
       "padding": true,
       "margin": true

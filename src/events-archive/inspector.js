@@ -49,6 +49,9 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		catTermsSelected,
 		hideIfEmpty,
 		emptyMessage,
+		headline,
+		enableLoadMore,
+		loadMoreLabel,
 		contentSlots,
 		slotDateFormat,
 		slotTimeFormat,
@@ -272,6 +275,14 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 
 			{ /* Content Panel */ }
 			<PanelBody title={ __( 'Content', 'carkeek-events' ) } initialOpen={ false }>
+				<TextControl
+					label={ __( 'Headline', 'carkeek-events' ) }
+					help={ __( 'Optional heading rendered above the events list as an h2.', 'carkeek-events' ) }
+					value={ headline }
+					onChange={ ( value ) => setAttributes( { headline: value } ) }
+					__nextHasNoMarginBottom
+				/>
+				<hr style={ { margin: '12px 0' } } />
 				<p style={ { marginTop: 0, fontSize: 12, color: '#757575' } }>
 					{ __( 'Choose up to 5 content items. Output matches this order.', 'carkeek-events' ) }
 				</p>
@@ -362,6 +373,22 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 						value={ emptyMessage }
 						placeholder={ __( 'No upcoming events.', 'carkeek-events' ) }
 						onChange={ ( value ) => setAttributes( { emptyMessage: value } ) }
+					/>
+				) }
+				<hr style={ { margin: '12px 0' } } />
+				<ToggleControl
+					label={ __( 'Enable Load More Button', 'carkeek-events' ) }
+					help={ __( 'Adds a button that loads the next batch of events via AJAX. Does not apply when "Show All" is on.', 'carkeek-events' ) }
+					checked={ enableLoadMore }
+					onChange={ ( value ) => setAttributes( { enableLoadMore: value } ) }
+					__nextHasNoMarginBottom
+				/>
+				{ enableLoadMore && (
+					<TextControl
+						label={ __( 'Button Label', 'carkeek-events' ) }
+						value={ loadMoreLabel }
+						placeholder={ __( 'Load More', 'carkeek-events' ) }
+						onChange={ ( value ) => setAttributes( { loadMoreLabel: value } ) }
 						__nextHasNoMarginBottom
 					/>
 				) }
