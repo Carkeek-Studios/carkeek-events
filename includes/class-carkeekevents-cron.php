@@ -131,13 +131,12 @@ class CarkeekEvents_Cron {
 	}
 
 	// -----------------------------------------------------------------------
-	// Pass 2: Expire old events (set post_status = private)
+	// Pass 2: Expire old events (trash)
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Set post_status = private for events whose end date is older than
-	 * content_expiry_days. Private posts return 404 to logged-out users.
-	 * No data is permanently deleted — posts remain restorable by an admin.
+	 * Trash events whose end date is older than content_expiry_days.
+	 * Trashed posts are restorable by an admin via the standard Trash screen.
 	 *
 	 * @since 2.0.0
 	 * @return void
@@ -177,10 +176,7 @@ class CarkeekEvents_Cron {
 
 		foreach ( $query->posts as $post_id ) {
 			do_action( 'carkeek_events_before_expire', $post_id );
-			wp_update_post( array(
-				'ID'          => $post_id,
-				'post_status' => 'private',
-			) );
+			wp_trash_post( $post_id );
 		}
 	}
 }

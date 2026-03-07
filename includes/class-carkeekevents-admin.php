@@ -28,29 +28,6 @@ class CarkeekEvents_Admin {
 		add_filter( 'manage_carkeek_event_posts_columns', array( $instance, 'add_event_columns' ) );
 		add_action( 'manage_carkeek_event_posts_custom_column', array( $instance, 'render_event_columns' ), 10, 2 );
 		add_filter( 'manage_edit-carkeek_event_sortable_columns', array( $instance, 'sortable_event_columns' ) );
-		// Show private (expired) events in the admin list table alongside published ones.
-		add_action( 'pre_get_posts', array( $instance, 'show_private_in_list_table' ) );
-	}
-
-	/**
-	 * Include private (expired) posts in the admin events list table.
-	 *
-	 * @since 2.0.0
-	 * @param WP_Query $query Current WP_Query.
-	 * @return void
-	 */
-	public function show_private_in_list_table( $query ) {
-		if ( ! is_admin() || ! $query->is_main_query() ) {
-			return;
-		}
-		if ( 'carkeek_event' !== $query->get( 'post_type' ) ) {
-			return;
-		}
-		// Only adjust when viewing all posts (no explicit status filter selected).
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( $screen && 'edit-carkeek_event' === $screen->id && ! isset( $_GET['post_status'] ) ) {
-			$query->set( 'post_status', array( 'publish', 'private', 'draft', 'pending' ) );
-		}
 	}
 
 	/**
@@ -137,7 +114,6 @@ class CarkeekEvents_Admin {
 				$new['start_date'] = __( 'Start Date', 'carkeek-events' );
 				$new['end_date']   = __( 'End Date', 'carkeek-events' );
 				$new['location']   = __( 'Location', 'carkeek-events' );
-				$new['status']     = __( 'Status', 'carkeek-events' );
 			}
 		}
 		return $new;
@@ -182,17 +158,6 @@ class CarkeekEvents_Admin {
 					}
 				}
 				echo esc_html( $loc_text ?: '—' );
-				break;
-
-			case 'status':
-				$post_obj = get_post( $post_id );
-				if ( $post_obj && 'private' === $post_obj->post_status ) {
-					echo '<span style="color:#888;">&#9679; ' . esc_html__( 'Expired', 'carkeek-events' ) . '</span>';
-				} elseif ( get_post_meta( $post_id, '_carkeek_event_hidden', true ) === '1' ) {
-					echo '<span style="color:#dba617;">&#9679; ' . esc_html__( 'Hidden', 'carkeek-events' ) . '</span>';
-				} else {
-					echo '<span style="color:#00a32a;">&#9679; ' . esc_html__( 'Active', 'carkeek-events' ) . '</span>';
-				}
 				break;
 		}
 	}
