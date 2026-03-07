@@ -29,18 +29,34 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
+
+		@media(  min-width: 600px) {
+			.carkeek-event-card {
+				display: flex;
+				gap: 1.5rem;
+				&__content {
+					flex: 1 1 50%;
+				}
+				&__image-link {
+					flex: 1 1 50%;
+				}
+			}
+		}
 	}
 
 	&__empty {
 		font-style: italic;
 	}
-}
-
-.carkeek-events-archive-block {
 	&__load-more-wrap {
 		margin-top: 1.5rem;
 		text-align: center;
+		display: flex;
+		justify-content: center;;
 	}
+}
+
+.carkeek-events-archive-block {
+
 
 	.js-carkeek-events-load-more {
 		&.is-loading,

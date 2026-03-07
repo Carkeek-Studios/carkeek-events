@@ -261,16 +261,26 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 					</>
 				) }
 				<ToggleControl
-					label={ __( 'Display Featured Image', 'carkeek-events' ) }
-					checked={ displayFeaturedImage }
-					onChange={ ( value ) => setAttributes( { displayFeaturedImage: value } ) }
-				/>
-				<ToggleControl
 					label={ __( 'Show Pagination', 'carkeek-events' ) }
 					checked={ showPagination }
 					onChange={ ( value ) => setAttributes( { showPagination: value } ) }
+				/>
+				<ToggleControl
+					label={ __( 'Enable Load More Button', 'carkeek-events' ) }
+					help={ __( 'Adds a button that loads the next batch of events via AJAX. Does not apply when "Show All" is on.', 'carkeek-events' ) }
+					checked={ enableLoadMore }
+					onChange={ ( value ) => setAttributes( { enableLoadMore: value } ) }
 					__nextHasNoMarginBottom
 				/>
+				{ enableLoadMore && (
+					<TextControl
+						label={ __( 'Button Label', 'carkeek-events' ) }
+						value={ loadMoreLabel }
+						placeholder={ __( 'Load More', 'carkeek-events' ) }
+						onChange={ ( value ) => setAttributes( { loadMoreLabel: value } ) }
+						__nextHasNoMarginBottom
+					/>
+				) }
 			</PanelBody>
 
 			{ /* Content Panel */ }
@@ -314,6 +324,14 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 						) }
 					</Flex>
 				) ) }
+
+				<hr style={ { margin: '12px 0' } } />
+				<ToggleControl
+					label={ __( 'Display Featured Image', 'carkeek-events' ) }
+					checked={ displayFeaturedImage }
+					onChange={ ( value ) => setAttributes( { displayFeaturedImage: value } ) }
+					__nextHasNoMarginBottom
+				/>
 
 				{ /* Date format options — shown when any date/time slot is active */ }
 				{ hasDateSlot && (
@@ -373,23 +391,6 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 						value={ emptyMessage }
 						placeholder={ __( 'No upcoming events.', 'carkeek-events' ) }
 						onChange={ ( value ) => setAttributes( { emptyMessage: value } ) }
-					/>
-				) }
-				<hr style={ { margin: '12px 0' } } />
-				<ToggleControl
-					label={ __( 'Enable Load More Button', 'carkeek-events' ) }
-					help={ __( 'Adds a button that loads the next batch of events via AJAX. Does not apply when "Show All" is on.', 'carkeek-events' ) }
-					checked={ enableLoadMore }
-					onChange={ ( value ) => setAttributes( { enableLoadMore: value } ) }
-					__nextHasNoMarginBottom
-				/>
-				{ enableLoadMore && (
-					<TextControl
-						label={ __( 'Button Label', 'carkeek-events' ) }
-						value={ loadMoreLabel }
-						placeholder={ __( 'Load More', 'carkeek-events' ) }
-						onChange={ ( value ) => setAttributes( { loadMoreLabel: value } ) }
-						__nextHasNoMarginBottom
 					/>
 				) }
 			</PanelBody>

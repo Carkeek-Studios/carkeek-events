@@ -1,23 +1,47 @@
 import { registerPlugin } from '@wordpress/plugins';
 import { PluginDocumentSettingPanel } from '@wordpress/editor';
 import { ToggleControl } from '@wordpress/components';
-import { useEntityProp } from '@wordpress/core-data';
-import { useSelect } from '@wordpress/data';
+import { useSelect, useDispatch } from '@wordpress/data';
+import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
 const EventHidePanel = () => {
-	const postType = useSelect(
-		( select ) => select( 'core/editor' ).getCurrentPostType(),
-		[]
-	);
+	const { postType, postId, isHidden } = useSelect( ( select ) => {
+		const editor = select( 'core/editor' );
+		const meta   = editor.getEditedPostAttribute( 'meta' );
+		return {
+			postType: editor.getCurrentPostType(),
+			postId:   editor.getCurrentPostId(),
+			isHidden: meta?._carkeek_event_hidden === '1',
+		};
+	}, [] );
 
-	const [ meta, setMeta ] = useEntityProp( 'postType', postType, 'meta' );
+	const { editPost } = useDispatch( 'core/editor' );
 
 	if ( postType !== 'carkeek_event' ) {
 		return null;
 	}
 
-	const isHidden = meta?._carkeek_event_hidden === '1';
+	const handleChange = async ( value ) => {
+		const metaValue = value ? '1' : '0';
+
+		// Update the entity store immediately so the main Save button
+		// stays in sync and doesn't clobber this field.
+		editPost( { meta: { _carkeek_event_hidden: metaValue } } );
+
+		// Also save directly via REST API — this is the reliable write
+		// that persists regardless of entity-store timing issues.
+		try {
+			await apiFetch( {
+				path:   `/wp/v2/carkeek_event/${ postId }`,
+				method: 'POST',
+				data:   { meta: { _carkeek_event_hidden: metaValue } },
+			} );
+		} catch {
+			// Revert entity store on failure.
+			editPost( { meta: { _carkeek_event_hidden: value ? '0' : '1' } } );
+		}
+	};
 
 	return (
 		<PluginDocumentSettingPanel
@@ -31,9 +55,7 @@ const EventHidePanel = () => {
 					'carkeek-events'
 				) }
 				checked={ isHidden }
-				onChange={ ( value ) =>
-					setMeta( { ...meta, _carkeek_event_hidden: value ? '1' : '0' } )
-				}
+				onChange={ handleChange }
 				__nextHasNoMarginBottom
 			/>
 		</PluginDocumentSettingPanel>

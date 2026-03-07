@@ -92,7 +92,6 @@ class CarkeekEvents_Meta_Boxes {
 		$end_time = ( $end_iso && strlen( $end_iso ) > 10 && substr( $end_iso, 11 ) !== '00:00:00' )
 			? substr( $end_iso, 11, 5 ) : '';
 
-		$hidden = get_post_meta( $post->ID, '_carkeek_event_hidden', true );
 		$location_id      = (int) get_post_meta( $post->ID, '_carkeek_event_location_id', true );
 		$location_text    = get_post_meta( $post->ID, '_carkeek_event_location_text', true );
 		$organizer_id     = (int) get_post_meta( $post->ID, '_carkeek_event_organizer_id', true );
@@ -150,17 +149,7 @@ class CarkeekEvents_Meta_Boxes {
 				</div>
 			</div>
 
-			<div class="carkeek-events-row">
-				<div class="carkeek-events-col carkeek-events-col--full">
-					<label>
-						<input type="checkbox" name="carkeek_event_hidden" value="1"
-							<?php checked( $hidden, '1' ); ?> />
-						<?php esc_html_e( 'Hide from event listings (event remains accessible via direct URL)', 'carkeek-events' ); ?>
-					</label>
-				</div>
-			</div>
-
-			<?php do_action( 'carkeek_events_meta_box_after_dates', $post ); ?>
+				<?php do_action( 'carkeek_events_meta_box_after_dates', $post ); ?>
 
 			<hr />
 
@@ -399,8 +388,9 @@ class CarkeekEvents_Meta_Boxes {
 			delete_post_meta( $post_id, '_carkeek_event_end' );
 		}
 
-		// Hidden checkbox — manual hide from archive listings.
-		update_post_meta( $post_id, '_carkeek_event_hidden', isset( $_POST['carkeek_event_hidden'] ) ? '1' : '0' );
+		// Note: _carkeek_event_hidden is managed exclusively by the block editor
+		// sidebar plugin (src/event-editor/index.js) via the REST API. It is not
+		// saved here to avoid the meta box form overwriting the REST-saved value.
 
 		// Location.
 		$location_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_location_mode'] ?? 'cpt' ) );
