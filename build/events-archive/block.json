@@ -1,0 +1,148 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "carkeek-events/archive",
+  "title": "Carkeek Events Archive",
+  "category": "widgets",
+  "description": "Display a filterable, sortable list of Carkeek Events.",
+  "textdomain": "carkeek-events",
+  "editorScript": "file:./index.js",
+  "style": "file:./style-index.css",
+  "attributes": {
+    "numberOfPosts": {
+      "type": "number",
+      "default": 6
+    },
+    "postLayout": {
+      "type": "string",
+      "default": "grid"
+    },
+    "columns": {
+      "type": "number",
+      "default": 3
+    },
+    "columnsMobile": {
+      "type": "number",
+      "default": 1
+    },
+    "columnsTablet": {
+      "type": "number",
+      "default": 2
+    },
+    "displayFeaturedImage": {
+      "type": "boolean",
+      "default": true
+    },
+    "excerptLength": {
+      "type": "number",
+      "default": 25
+    },
+    "showPagination": {
+      "type": "boolean",
+      "default": false
+    },
+    "includePastEvents": {
+      "type": "boolean",
+      "default": false
+    },
+    "onlyPastEvents": {
+      "type": "boolean",
+      "default": false
+    },
+    "sortOrder": {
+      "type": "string",
+      "default": "ASC"
+    },
+    "filterByCategory": {
+      "type": "boolean",
+      "default": false
+    },
+    "catFilterMode": {
+      "type": "string",
+      "default": "include"
+    },
+    "catTermsSelected": {
+      "type": "string",
+      "default": ""
+    },
+    "hideIfEmpty": {
+      "type": "boolean",
+      "default": true
+    },
+    "emptyMessage": {
+      "type": "string",
+      "default": ""
+    },
+    "className": {
+      "type": "string",
+      "default": ""
+    },
+    "headline": {
+      "type": "string",
+      "default": ""
+    },
+    "enableLoadMore": {
+      "type": "boolean",
+      "default": false
+    },
+    "loadMoreLabel": {
+      "type": "string",
+      "default": ""
+    },
+    "contentSlots": {
+      "type": "string",
+      "default": "title,date_time"
+    },
+    "slotDateFormat": {
+      "type": "string",
+      "default": ""
+    },
+    "slotTimeFormat": {
+      "type": "string",
+      "default": ""
+    },
+    "showEndDateTime": {
+      "type": "boolean",
+      "default": true
+    },
+    "buttonLinkLabel": {
+      "type": "string",
+      "default": ""
+    },
+    "useAltPostType": {
+      "type": "boolean",
+      "default": false
+    },
+    "altPostType": {
+      "type": "string",
+      "default": ""
+    },
+    "altStartMetaKey": {
+      "type": "string",
+      "default": ""
+    },
+    "altEndMetaKey": {
+      "type": "string",
+      "default": ""
+    },
+    "altTaxonomy": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "viewScript": "file:./view.js",
+  "supports": {
+    "align": [
+      "wide",
+      "full"
+    ],
+    "color": {
+      "background": true,
+      "text": true
+    },
+    "spacing": {
+      "padding": true,
+      "margin": true
+    }
+  }
+}

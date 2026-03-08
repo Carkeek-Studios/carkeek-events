@@ -82,10 +82,16 @@ class CarkeekEvents_Meta_Boxes {
 	public function render_event_meta_box( $post ) {
 		wp_nonce_field( 'carkeek_event_meta_save', 'carkeek_event_meta_nonce' );
 
-		$start_date     = get_post_meta( $post->ID, '_carkeek_event_start_date', true );
-		$start_time     = get_post_meta( $post->ID, '_carkeek_event_start_time', true );
-		$end_date       = get_post_meta( $post->ID, '_carkeek_event_end_date', true );
-		$end_time       = get_post_meta( $post->ID, '_carkeek_event_end_time', true );
+		$start_iso  = get_post_meta( $post->ID, '_carkeek_event_start', true );
+		$start_date = $start_iso ? substr( $start_iso, 0, 10 ) : '';
+		$start_time = ( $start_iso && strlen( $start_iso ) > 10 && substr( $start_iso, 11 ) !== '00:00:00' )
+			? substr( $start_iso, 11, 5 ) : '';
+
+		$end_iso  = get_post_meta( $post->ID, '_carkeek_event_end', true );
+		$end_date = $end_iso ? substr( $end_iso, 0, 10 ) : '';
+		$end_time = ( $end_iso && strlen( $end_iso ) > 10 && substr( $end_iso, 11 ) !== '00:00:00' )
+			? substr( $end_iso, 11, 5 ) : '';
+
 		$location_id      = (int) get_post_meta( $post->ID, '_carkeek_event_location_id', true );
 		$location_text    = get_post_meta( $post->ID, '_carkeek_event_location_text', true );
 		$organizer_id     = (int) get_post_meta( $post->ID, '_carkeek_event_organizer_id', true );
@@ -143,7 +149,7 @@ class CarkeekEvents_Meta_Boxes {
 				</div>
 			</div>
 
-			<?php do_action( 'carkeek_events_meta_box_after_dates', $post ); ?>
+				<?php do_action( 'carkeek_events_meta_box_after_dates', $post ); ?>
 
 			<hr />
 
@@ -361,26 +367,30 @@ class CarkeekEvents_Meta_Boxes {
 			return;
 		}
 
-		// Dates and times.
-		$date_time_map = array(
-			'_carkeek_event_start_date' => 'carkeek_event_start_date',
-			'_carkeek_event_start_time' => 'carkeek_event_start_time',
-			'_carkeek_event_end_date'   => 'carkeek_event_end_date',
-			'_carkeek_event_end_time'   => 'carkeek_event_end_time',
-		);
-
-		foreach ( $date_time_map as $meta_key => $post_key ) {
-			if ( isset( $_POST[ $post_key ] ) && '' !== $_POST[ $post_key ] ) {
-				update_post_meta( $post_id, $meta_key, sanitize_text_field( wp_unslash( $_POST[ $post_key ] ) ) );
-			} else {
-				delete_post_meta( $post_id, $meta_key );
-			}
+		// Combine separate date and time inputs into a single ISO 8601 datetime string.
+		$start_date = sanitize_text_field( wp_unslash( $_POST['carkeek_event_start_date'] ?? '' ) );
+		$start_time = sanitize_text_field( wp_unslash( $_POST['carkeek_event_start_time'] ?? '' ) );
+		if ( $start_date ) {
+			update_post_meta( $post_id, '_carkeek_event_start', $start_date . 'T' . ( $start_time ? $start_time . ':00' : '00:00:00' ) );
+		} else {
+			delete_post_meta( $post_id, '_carkeek_event_start' );
 		}
 
+		$end_date = sanitize_text_field( wp_unslash( $_POST['carkeek_event_end_date'] ?? '' ) );
+		$end_time = sanitize_text_field( wp_unslash( $_POST['carkeek_event_end_time'] ?? '' ) );
 		// Default end date to start date when left blank.
-		if ( empty( $_POST['carkeek_event_end_date'] ) && ! empty( $_POST['carkeek_event_start_date'] ) ) {
-			update_post_meta( $post_id, '_carkeek_event_end_date', sanitize_text_field( wp_unslash( $_POST['carkeek_event_start_date'] ) ) );
+		if ( ! $end_date && $start_date ) {
+			$end_date = $start_date;
 		}
+		if ( $end_date ) {
+			update_post_meta( $post_id, '_carkeek_event_end', $end_date . 'T' . ( $end_time ? $end_time . ':00' : '00:00:00' ) );
+		} else {
+			delete_post_meta( $post_id, '_carkeek_event_end' );
+		}
+
+		// Note: _carkeek_event_hidden is managed exclusively by the block editor
+		// sidebar plugin (src/event-editor/index.js) via the REST API. It is not
+		// saved here to avoid the meta box form overwriting the REST-saved value.
 
 		// Location.
 		$location_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_location_mode'] ?? 'cpt' ) );

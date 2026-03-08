@@ -38,6 +38,12 @@ class CarkeekEvents_Post_Types {
 	 * @return void
 	 */
 	public function register_post_types() {
+		// Read archive settings — controls has_archive at registration time.
+		$settings        = get_option( 'carkeek_events_settings', array() );
+		$disable_archive = ! empty( $settings['disable_wp_archive'] );
+		$archive_slug    = sanitize_title( $settings['archive_slug'] ?? 'events' ) ?: 'events';
+		$has_archive     = $disable_archive ? false : $archive_slug;
+
 		// --- carkeek_event ---
 		$event_labels = array(
 			'name'                  => _x( 'Events', 'Post type general name', 'carkeek-events' ),
@@ -65,10 +71,10 @@ class CarkeekEvents_Post_Types {
 				'labels'        => $event_labels,
 				'public'        => true,
 				'show_in_rest'  => true,
-				'has_archive'   => 'events',
+				'has_archive'   => $has_archive,
 				'menu_icon'     => 'dashicons-calendar-alt',
 				'menu_position' => 5,
-				'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt' ),
+				'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt', 'custom-fields' ),
 				'rewrite'       => array( 'slug' => 'event', 'with_front' => false ),
 			)
 		);
@@ -175,43 +181,33 @@ class CarkeekEvents_Post_Types {
 	 * @return void
 	 */
 	public function clear_stale_location_organizer_ids( $post_id ) {
+		global $wpdb;
+
 		$post = get_post( $post_id );
 		if ( ! $post ) {
 			return;
 		}
 
 		if ( 'carkeek_location' === $post->post_type ) {
-			$events = get_posts( array(
-				'post_type'      => 'carkeek_event',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'meta_query'     => array(
-					array(
-						'key'   => '_carkeek_event_location_id',
-						'value' => $post_id,
-					),
+			$wpdb->delete(
+				$wpdb->postmeta,
+				array(
+					'meta_key'   => '_carkeek_event_location_id',
+					'meta_value' => $post_id,
 				),
-			) );
-			foreach ( $events as $event_id ) {
-				delete_post_meta( $event_id, '_carkeek_event_location_id' );
-			}
+				array( '%s', '%d' )
+			);
 		}
 
 		if ( 'carkeek_organizer' === $post->post_type ) {
-			$events = get_posts( array(
-				'post_type'      => 'carkeek_event',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'meta_query'     => array(
-					array(
-						'key'   => '_carkeek_event_organizer_id',
-						'value' => $post_id,
-					),
+			$wpdb->delete(
+				$wpdb->postmeta,
+				array(
+					'meta_key'   => '_carkeek_event_organizer_id',
+					'meta_value' => $post_id,
 				),
-			) );
-			foreach ( $events as $event_id ) {
-				delete_post_meta( $event_id, '_carkeek_event_organizer_id' );
-			}
+				array( '%s', '%d' )
+			);
 		}
 	}
 }

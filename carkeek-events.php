@@ -4,12 +4,14 @@
  * Description:       Lightweight, developer-friendly event management. Registers Event, Location, and Organizer custom post types with meta boxes, expiry cron, and optional Google Maps geocoding. Integrates with carkeek-blocks custom-archive block.
  * Requires at least: 6.4
  * Requires PHP:      8.1
- * Version:           1.0.0
+ * Version:           2.0.0
  * Author:            Carkeek Studios
  * Author URI:        https://carkeekstudios.com
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       carkeek-events
+ * GitHub Plugin URI: Carkeek-Studios/carkeek-events
+ * Primary Branch:    main
  *
  * @package carkeek-events
  */
@@ -114,6 +116,8 @@ if ( ! class_exists( 'CarkeekEvents' ) ) {
 		private function init() {
 			add_action( 'plugins_loaded', array( $this, 'includes' ), 15 );
 			add_action( 'plugins_loaded', array( $this, 'load_textdomain' ), 99 );
+			// Flush rewrite rules automatically when archive settings change.
+			add_action( 'update_option_carkeek_events_settings', 'flush_rewrite_rules' );
 		}
 
 		/**
@@ -134,6 +138,9 @@ if ( ! class_exists( 'CarkeekEvents' ) ) {
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-geocode.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-gamajo-template-loader.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-template-loader.php';
+			if ( file_exists( CARKEEKEVENTS_PLUGIN_DIR . 'build/events-archive/index.asset.php' ) ) {
+				require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-block.php';
+			}
 		}
 
 		/**

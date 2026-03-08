@@ -1,0 +1,74 @@
+/**
+ * Carkeek Events Archive Block — structural styles only.
+ * Layout and visual design are expected to come from the theme.
+ */
+
+.carkeek-events-archive {
+	&.is-grid {
+		display: grid;
+		gap: 1.5rem;
+
+		&.columns-1 { grid-template-columns: repeat(1, 1fr); }
+		&.columns-2 { grid-template-columns: repeat(2, 1fr); }
+		&.columns-3 { grid-template-columns: repeat(3, 1fr); }
+		&.columns-4 { grid-template-columns: repeat(4, 1fr); }
+		&.columns-5 { grid-template-columns: repeat(5, 1fr); }
+		&.columns-6 { grid-template-columns: repeat(6, 1fr); }
+
+		@media ( max-width: 782px ) {
+			&.columns-tablet-1 { grid-template-columns: repeat(1, 1fr); }
+			&.columns-tablet-2 { grid-template-columns: repeat(2, 1fr); }
+		}
+
+		@media ( max-width: 480px ) {
+			&.columns-mobile-1 { grid-template-columns: repeat(1, 1fr); }
+		}
+	}
+
+	&.is-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+
+		@media(  min-width: 600px) {
+			.carkeek-event-card {
+				display: flex;
+				gap: 1.5rem;
+				&__content {
+					flex: 1 1 50%;
+				}
+				&__image-link {
+					flex: 1 1 50%;
+				}
+			}
+		}
+	}
+
+	&__empty {
+		font-style: italic;
+	}
+	&__load-more-wrap {
+		margin-top: 1.5rem;
+		text-align: center;
+		display: flex;
+		justify-content: center;;
+	}
+}
+
+.carkeek-events-archive-block {
+
+
+	.js-carkeek-events-load-more {
+		&.is-loading,
+		&[disabled] {
+			opacity: 0.6;
+			cursor: wait;
+		}
+	}
+
+	&__load-more-status {
+		margin-top: 0.5rem;
+		font-size: 0.875em;
+		color: inherit;
+	}
+}

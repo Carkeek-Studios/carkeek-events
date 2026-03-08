@@ -1,6 +1,6 @@
 # Carkeek Events
 
-A lightweight, developer-friendly WordPress plugin for managing events. Registers Event, Location, and Organizer custom post types with classic meta boxes for structured data, a daily WP cron for expiry and cleanup, optional Google Maps geocoding, and integration with the `carkeek-blocks` custom-archive block.
+A lightweight, developer-friendly WordPress plugin for managing events. Registers Event, Location, and Organizer custom post types with classic meta boxes for structured data, a daily WP cron for hidden/expired state management, optional Google Maps geocoding, a built-in Events Archive Gutenberg block, and integration with the `carkeek-blocks` custom-archive block.
 
 The plugin provides **no opinionated front-end styles**. It ships default templates that you are expected to override in your theme.
 
@@ -39,18 +39,15 @@ The plugin provides **no opinionated front-end styles**. It ships default templa
 
 | Meta Key | Type | Notes |
 |---|---|---|
-| `_carkeek_event_start_date` | string | `YYYY-MM-DD` |
-| `_carkeek_event_start_time` | string | `HH:MM` (24h) |
-| `_carkeek_event_end_date` | string | `YYYY-MM-DD`. Leave blank for open-ended events (they will never expire). |
-| `_carkeek_event_end_time` | string | `HH:MM` (24h) |
+| `_carkeek_event_start` | string | ISO 8601 local time: `YYYY-MM-DDTHH:MM:SS`. Time is `00:00:00` when no time is set. |
+| `_carkeek_event_end` | string | ISO 8601 local time. Empty for open-ended events (they will never be hidden or expired). |
 | `_carkeek_event_location_id` | integer | Linked `carkeek_location` post ID. `0` if none. |
 | `_carkeek_event_location_text` | string | Free-text location fallback when no CPT is linked. |
 | `_carkeek_event_organizer_id` | integer | Linked `carkeek_organizer` post ID. `0` if none. |
 | `_carkeek_event_organizer_text` | string | Free-text organizer fallback when no CPT is linked. |
 | `_carkeek_event_website` | string | External registration or info URL. When set, templates render a CTA button. |
 | `_carkeek_event_button_label` | string | CTA button label. Defaults to "Sign Up" at render time if blank. |
-| `_carkeek_event_hidden` | boolean | Set to `1` by cron when event expires. |
-| `_carkeek_event_hidden_date` | string | `YYYY-MM-DD`. Date cron hid the event. Used for grace period calculation. |
+| `_carkeek_event_hidden` | string | `1` = hidden from archive listings but direct URL still works. Set manually or by cron. |
 
 ### carkeek_location
 
@@ -310,6 +307,7 @@ $event_link     = CarkeekEvents_Display::get_event_link_html( $post_id );
 | `carkeek_events_expiry_threshold` | `$threshold, $post_id` | Override expiry date per event |
 | `carkeek_events_card_template` | `$template, $post, $attributes` | Supply a custom event card template path |
 | `carkeek_events_single_template` | `$template` | Override the single event template path |
+| `carkeek_events_block_query_args` | `$args, $attributes` | Modify WP_Query args for the Events Archive block |
 
 ### Actions
 
@@ -319,8 +317,8 @@ $event_link     = CarkeekEvents_Display::get_event_link_html( $post_id );
 | `carkeek_events_meta_box_after_location` | `$post` | Add fields after location in the event meta box |
 | `carkeek_events_meta_box_after_organizer` | `$post` | Add fields after organizer in the event meta box |
 | `carkeek_events_meta_box_after_link` | `$post` | Add fields after the website/button section |
-| `carkeek_events_before_hide` | `$post_id` | Fires before cron hides an event |
-| `carkeek_events_before_delete` | `$post_id` | Fires before cron permanently deletes an event |
+| `carkeek_events_before_hide` | `$post_id` | Fires before cron sets `_carkeek_event_hidden = 1` |
+| `carkeek_events_before_expire` | `$post_id` | Fires before cron sets `post_status = private` |
 | `carkeek_events_after_geocode` | `$post_id, $lat, $lng` | Fires after geocoding completes |
 
 ---
@@ -332,7 +330,9 @@ All settings are stored as a single array under the option key `carkeek_events_s
 | Key | Default | Notes |
 |---|---|---|
 | `expiry_behavior` | `end_of_day` | `end_of_day` \| `immediate` \| `never` |
-| `deletion_grace_period` | `30` | Integer, days. Minimum 1. |
+| `content_expiry_days` | `365` | Integer, days. Events are set to `private` this many days after their end date. Minimum 1. |
+| `disable_wp_archive` | `1` | `1` = WP CPT archive disabled (use a custom Page + archive block). `0` = enabled. |
+| `archive_slug` | `events` | Slug for the WP CPT archive when enabled. Rewrite rules flush automatically on save. |
 | `use_plugin_template` | `1` | `1` = use plugin template, `0` = use theme template |
 | `date_format` | `''` | PHP date format string. Falls back to WP site setting. |
 | `time_format` | `''` | PHP date format string. Falls back to WP site setting. |
@@ -342,16 +342,28 @@ All settings are stored as a single array under the option key `carkeek_events_s
 
 ---
 
+## Event Visibility States
+
+| State | `_carkeek_event_hidden` | `post_status` | Archive | Direct URL |
+|---|---|---|---|---|
+| Active | `0` / not set | `publish` | Visible | 200 |
+| Hidden | `1` | `publish` | Excluded | 200 |
+| Expired | — | `private` | Excluded | 404 (logged-out users) |
+
+**Hidden** events are excluded from archive listings but remain accessible via their direct URL — useful for keeping old event pages reachable from blog posts. Can be set manually via the meta box checkbox, or automatically by the expiry cron.
+
+**Expired** events have `post_status = private`. WordPress returns 404 to logged-out users automatically. No data is permanently deleted — an admin can restore an expired event.
+
+---
+
 ## Expiry and Cron
 
-A daily WP cron job (`carkeek_events_daily_cron`) automatically hides and then permanently deletes past events:
+A daily WP cron job (`carkeek_events_daily_cron`) manages event visibility automatically:
 
-1. **Pass 1 — Hide:** Events whose `_carkeek_event_end_date` has passed (per the `expiry_behavior` setting) receive `_carkeek_event_hidden = 1`. They disappear from the front end immediately.
-2. **Pass 2 — Delete:** Events hidden longer than `deletion_grace_period` days are permanently deleted with `wp_delete_post( $id, true )`.
+1. **Pass 1 — Auto-hide:** Events whose `_carkeek_event_end` has passed (per the `expiry_behavior` setting) receive `_carkeek_event_hidden = 1`. They disappear from archive listings immediately but remain accessible via direct URL.
+2. **Pass 2 — Expire:** Events whose `_carkeek_event_end` is older than `content_expiry_days` (default 365) are set to `post_status = private`, returning 404 to visitors. No permanent deletion — posts remain in the database.
 
-Events with no `_carkeek_event_end_date` are never hidden or deleted.
-
-**Warning:** Permanently deleted events cannot be recovered.
+Events with no `_carkeek_event_end` are never hidden or expired.
 
 **Manual trigger:**
 
@@ -360,6 +372,47 @@ wp cron event run carkeek_events_daily_cron
 ```
 
 Or use the **Run Expiry Check Now** button in **Events > Settings**.
+
+---
+
+## Events Archive Block
+
+The plugin ships a native Gutenberg block — **Carkeek Events Archive** — available in the block inserter under **Widgets**.
+
+### Why use this instead of the WordPress CPT archive?
+
+The WordPress archive template is hard to customise without a page builder. The archive block lets you place a filterable event list anywhere on any page, controlling layout, columns, and category filters from the block sidebar. Set **Disable WordPress Archive** in **Events > Settings** (the default), then create a regular Page with the slug `events` and drop the block on it.
+
+### Block options
+
+| Option | Default | Notes |
+|---|---|---|
+| Number of Events | `6` | Posts per page |
+| Sort Order | `ASC` | Ascending (upcoming first) or Descending (latest first) |
+| Include Past Events | off | Show events whose end date has passed |
+| Only Past Events | off | Show only past events |
+| Filter by Category | off | Multi-select from `carkeek_event_category` terms |
+| Post Layout | `grid` | `grid` or `list` |
+| Columns (Desktop/Tablet/Mobile) | 3/2/1 | Grid columns at each breakpoint |
+| Display Featured Image | on | |
+| Display Excerpt | off | |
+| Excerpt Length | 25 words | |
+| Show Pagination | off | |
+| Hide Block When Empty | on | Returns empty string if no events match |
+| Empty State Message | — | Shown when Hide When Empty is off |
+
+**Filter:** `carkeek_events_block_query_args( $args, $attributes )` — modify the WP_Query args for the block.
+
+### Build
+
+The block source is in `src/events-archive/`. After installing npm dependencies, run:
+
+```bash
+npm install
+npm run build
+```
+
+The compiled assets in `build/events-archive/` are committed to the repo so the plugin works without a build step on deployment.
 
 ---
 

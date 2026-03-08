@@ -114,7 +114,6 @@ class CarkeekEvents_Admin {
 				$new['start_date'] = __( 'Start Date', 'carkeek-events' );
 				$new['end_date']   = __( 'End Date', 'carkeek-events' );
 				$new['location']   = __( 'Location', 'carkeek-events' );
-				$new['status']     = __( 'Status', 'carkeek-events' );
 			}
 		}
 		return $new;
@@ -131,14 +130,16 @@ class CarkeekEvents_Admin {
 	public function render_event_columns( $column, $post_id ) {
 		switch ( $column ) {
 			case 'start_date':
-				$date = get_post_meta( $post_id, '_carkeek_event_start_date', true );
-				$time = get_post_meta( $post_id, '_carkeek_event_start_time', true );
+				$iso  = get_post_meta( $post_id, '_carkeek_event_start', true );
+				$date = $iso ? substr( $iso, 0, 10 ) : '';
+				$time = ( $iso && substr( $iso, 11 ) !== '00:00:00' ) ? substr( $iso, 11, 5 ) : '';
 				echo esc_html( $date . ( $time ? ' ' . $time : '' ) );
 				break;
 
 			case 'end_date':
-				$date = get_post_meta( $post_id, '_carkeek_event_end_date', true );
-				$time = get_post_meta( $post_id, '_carkeek_event_end_time', true );
+				$iso  = get_post_meta( $post_id, '_carkeek_event_end', true );
+				$date = $iso ? substr( $iso, 0, 10 ) : '';
+				$time = ( $iso && substr( $iso, 11 ) !== '00:00:00' ) ? substr( $iso, 11, 5 ) : '';
 				if ( $date ) {
 					echo esc_html( $date . ( $time ? ' ' . $time : '' ) );
 				} else {
@@ -157,19 +158,6 @@ class CarkeekEvents_Admin {
 					}
 				}
 				echo esc_html( $loc_text ?: '—' );
-				break;
-
-			case 'status':
-				$hidden = get_post_meta( $post_id, '_carkeek_event_hidden', true );
-				if ( $hidden ) {
-					$hidden_date = get_post_meta( $post_id, '_carkeek_event_hidden_date', true );
-					echo '<span style="color:#d63638;">&#9679; ' . esc_html__( 'Expired', 'carkeek-events' ) . '</span>';
-					if ( $hidden_date ) {
-						echo ' <small style="color:#aaa;">' . esc_html( $hidden_date ) . '</small>';
-					}
-				} else {
-					echo '<span style="color:#00a32a;">&#9679; ' . esc_html__( 'Active', 'carkeek-events' ) . '</span>';
-				}
 				break;
 		}
 	}

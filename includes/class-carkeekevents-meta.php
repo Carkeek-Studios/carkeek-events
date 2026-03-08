@@ -39,16 +39,19 @@ class CarkeekEvents_Meta {
 	 * @return void
 	 */
 	public function register_meta_fields() {
-		$auth_callback = function() {
-			return current_user_can( 'edit_posts' );
+		// Use edit_post (singular, with post ID) so ownership is respected:
+		// Contributors can only edit meta on their own posts, not arbitrary ones.
+		$auth_callback = function( $allowed, $meta_key, $object_id ) {
+			return current_user_can( 'edit_post', $object_id );
 		};
 
 		// ---------------------------------------------------------------
 		// carkeek_event meta fields
 		// ---------------------------------------------------------------
 
-		// Start date: YYYY-MM-DD (site local time).
-		register_meta( 'post', '_carkeek_event_start_date', array(
+		// Combined start datetime: ISO 8601 local time (2026-03-15T10:00:00).
+		// Time component is 00:00:00 when no time is set.
+		register_meta( 'post', '_carkeek_event_start', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
 			'single'         => true,
@@ -56,26 +59,8 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// Start time: HH:MM (site local time).
-		register_meta( 'post', '_carkeek_event_start_time', array(
-			'object_subtype' => 'carkeek_event',
-			'type'           => 'string',
-			'single'         => true,
-			'show_in_rest'   => true,
-			'auth_callback'  => $auth_callback,
-		) );
-
-		// End date: YYYY-MM-DD. Leave blank for open-ended events (they will never expire).
-		register_meta( 'post', '_carkeek_event_end_date', array(
-			'object_subtype' => 'carkeek_event',
-			'type'           => 'string',
-			'single'         => true,
-			'show_in_rest'   => true,
-			'auth_callback'  => $auth_callback,
-		) );
-
-		// End time: HH:MM. Used with immediate expiry mode.
-		register_meta( 'post', '_carkeek_event_end_time', array(
+		// Combined end datetime. Empty string for open-ended events (they will never expire).
+		register_meta( 'post', '_carkeek_event_end', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
 			'single'         => true,
@@ -137,20 +122,26 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// Hidden flag set by the expiry cron. 1 = hidden from front end.
+		// Hidden flag. '1' = excluded from archive listings, but direct URL still works.
+		// Set by the block editor sidebar plugin via the REST API, or automatically by cron
+		// when the event end date passes.
 		register_meta( 'post', '_carkeek_event_hidden', array(
 			'object_subtype' => 'carkeek_event',
-			'type'           => 'boolean',
+			'type'           => 'string',
 			'single'         => true,
+			'default'        => '0',
 			'show_in_rest'   => true,
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// Date when the event was hidden by cron (YYYY-MM-DD). Used for grace period calc.
-		register_meta( 'post', '_carkeek_event_hidden_date', array(
+		// Manual restore flag. '1' = an editor explicitly unhid this event via the sidebar.
+		// The daily cron checks this flag and will not auto-re-hide events where it is set.
+		// Cleared (set to '0') when an editor manually hides an event.
+		register_meta( 'post', '_carkeek_event_manually_restored', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
 			'single'         => true,
+			'default'        => '0',
 			'show_in_rest'   => true,
 			'auth_callback'  => $auth_callback,
 		) );
