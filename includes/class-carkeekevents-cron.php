@@ -4,11 +4,12 @@
  *
  * Daily cron with two passes:
  *   Pass 1 — Mark expired events as hidden (_carkeek_event_hidden = 1)
- *   Pass 2 — Set post_status = private for events whose end date is older
- *             than content_expiry_days (default 365). Private posts return
- *             404 to logged-out users; no data is permanently deleted.
+ *   Pass 2 — Trash events whose end date is older than content_expiry_days (default 365).
+ *             Trashed posts are restorable via the standard Trash screen.
  *
- * Events with no end date (_carkeek_event_end empty) are never hidden or expired.
+ * Events with no end date (_carkeek_event_end empty) are never hidden or trashed.
+ * Events where _carkeek_event_manually_restored = '1' are never auto-hidden (an editor
+ * explicitly restored them from the block editor sidebar).
  * All date comparisons use ISO 8601 CHAR sorting against site local time.
  *
  * @package carkeek-events
@@ -76,11 +77,15 @@ class CarkeekEvents_Cron {
 			$threshold = current_time( 'Y-m-d\TH:i:s' );
 		}
 
+		// Configurable batch size to prevent memory exhaustion on large sites.
+		$batch_size = absint( apply_filters( 'carkeek_events_cron_batch_size', 200 ) );
+
 		$query = new WP_Query( array(
 			'post_type'      => 'carkeek_event',
 			'post_status'    => 'publish',
-			'posts_per_page' => -1,
+			'posts_per_page' => $batch_size,
 			'fields'         => 'ids',
+			'no_found_rows'  => true,
 			'meta_query'     => array(
 				'relation' => 'AND',
 				// Must have a non-empty end datetime.
@@ -113,16 +118,33 @@ class CarkeekEvents_Cron {
 						'compare' => '!=',
 					),
 				),
+				// Skip events an editor has manually restored — respect their override.
+				array(
+					'relation' => 'OR',
+					array(
+						'key'     => '_carkeek_event_manually_restored',
+						'compare' => 'NOT EXISTS',
+					),
+					array(
+						'key'     => '_carkeek_event_manually_restored',
+						'value'   => '1',
+						'compare' => '!=',
+					),
+				),
 			),
 		) );
 
-		foreach ( $query->posts as $post_id ) {
-			// Allow per-event threshold override by add-ons.
-			$end_iso   = get_post_meta( $post_id, '_carkeek_event_end', true );
-			$threshold = apply_filters( 'carkeek_events_expiry_threshold', $threshold, $post_id );
+		$has_threshold_filter = has_filter( 'carkeek_events_expiry_threshold' );
 
-			if ( $end_iso >= $threshold ) {
-				continue;
+		foreach ( $query->posts as $post_id ) {
+			// Only re-fetch meta if an add-on filter might change the threshold per post.
+			// Avoids N redundant DB queries when no filter is registered (the common case).
+			if ( $has_threshold_filter ) {
+				$end_iso             = get_post_meta( $post_id, '_carkeek_event_end', true );
+				$effective_threshold = apply_filters( 'carkeek_events_expiry_threshold', $threshold, $post_id );
+				if ( $end_iso >= $effective_threshold ) {
+					continue;
+				}
 			}
 
 			do_action( 'carkeek_events_before_hide', $post_id );
@@ -142,16 +164,20 @@ class CarkeekEvents_Cron {
 	 * @return void
 	 */
 	private function pass_expire_old() {
-		$settings     = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
-		$expiry_days  = absint( $settings['content_expiry_days'] ?? 365 );
-		$expiry_days  = max( 1, $expiry_days );
-		$cutoff       = date( 'Y-m-d\T00:00:00', strtotime( "-{$expiry_days} days", current_time( 'timestamp' ) ) );
+		$settings    = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$expiry_days = absint( $settings['content_expiry_days'] ?? 365 );
+		$expiry_days = max( 1, $expiry_days );
+		// wp_date() respects the WordPress timezone setting (unlike PHP's date()).
+		$cutoff      = wp_date( 'Y-m-d\T00:00:00', strtotime( "-{$expiry_days} days" ) );
+
+		$batch_size = absint( apply_filters( 'carkeek_events_cron_batch_size', 200 ) );
 
 		$query = new WP_Query( array(
 			'post_type'      => 'carkeek_event',
 			'post_status'    => 'publish',
-			'posts_per_page' => -1,
+			'posts_per_page' => $batch_size,
 			'fields'         => 'ids',
+			'no_found_rows'  => true,
 			'meta_query'     => array(
 				'relation' => 'AND',
 				// Must have a non-empty end datetime.

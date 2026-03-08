@@ -104,6 +104,30 @@
     "showEndDateTime": {
       "type": "boolean",
       "default": true
+    },
+    "buttonLinkLabel": {
+      "type": "string",
+      "default": ""
+    },
+    "useAltPostType": {
+      "type": "boolean",
+      "default": false
+    },
+    "altPostType": {
+      "type": "string",
+      "default": ""
+    },
+    "altStartMetaKey": {
+      "type": "string",
+      "default": ""
+    },
+    "altEndMetaKey": {
+      "type": "string",
+      "default": ""
+    },
+    "altTaxonomy": {
+      "type": "string",
+      "default": ""
     }
   },
   "viewScript": "file:./view.js",

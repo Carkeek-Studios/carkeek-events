@@ -39,6 +39,30 @@ class CarkeekEvents_Query {
 	}
 
 	/**
+	 * Returns the meta_query clause that excludes hidden events.
+	 *
+	 * Centralises the OR( NOT EXISTS / != '1' ) pattern so it is defined
+	 * in exactly one place and can be used by any query builder.
+	 *
+	 * @since 1.0.0
+	 * @return array WP_Query meta_query clause.
+	 */
+	public static function hidden_exclusion_clause() {
+		return array(
+			'relation' => 'OR',
+			array(
+				'key'     => '_carkeek_event_hidden',
+				'compare' => 'NOT EXISTS',
+			),
+			array(
+				'key'     => '_carkeek_event_hidden',
+				'value'   => '1',
+				'compare' => '!=',
+			),
+		);
+	}
+
+	/**
 	 * Exclude hidden events from front-end main queries.
 	 *
 	 * @since 1.0.0
@@ -57,18 +81,7 @@ class CarkeekEvents_Query {
 		}
 
 		$meta_query   = $query->get( 'meta_query' ) ?: array();
-		$meta_query[] = array(
-			'relation' => 'OR',
-			array(
-				'key'     => '_carkeek_event_hidden',
-				'compare' => 'NOT EXISTS',
-			),
-			array(
-				'key'     => '_carkeek_event_hidden',
-				'value'   => '1',
-				'compare' => '!=',
-			),
-		);
+		$meta_query[] = self::hidden_exclusion_clause();
 		$query->set( 'meta_query', $meta_query );
 
 		// Apply chronological default sort if not already set.
@@ -98,18 +111,7 @@ class CarkeekEvents_Query {
 
 		// Exclude hidden events.
 		$args['meta_query']   = $args['meta_query'] ?? array();
-		$args['meta_query'][] = array(
-			'relation' => 'OR',
-			array(
-				'key'     => '_carkeek_event_hidden',
-				'compare' => 'NOT EXISTS',
-			),
-			array(
-				'key'     => '_carkeek_event_hidden',
-				'value'   => '1',
-				'compare' => '!=',
-			),
-		);
+		$args['meta_query'][] = self::hidden_exclusion_clause();
 
 		// Apply chronological default sort if not already set.
 		if ( empty( $args['orderby'] ) || 'date' === $args['orderby'] ) {

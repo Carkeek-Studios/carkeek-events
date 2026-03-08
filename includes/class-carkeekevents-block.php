@@ -104,7 +104,8 @@ class CarkeekEvents_Block {
 	 * @return string Rendered HTML.
 	 */
 	public function render( $attributes ) {
-		$query = new WP_Query( $this->build_query_args( $attributes ) );
+		$config = $this->get_post_type_config( $attributes );
+		$query  = new WP_Query( $this->build_query_args( $attributes ) );
 
 		if ( ! $query->have_posts() ) {
 			if ( ! empty( $attributes['hideIfEmpty'] ) ) {
@@ -130,9 +131,7 @@ class CarkeekEvents_Block {
 			'grid' === $layout ? 'columns-mobile-' . $mobile : '',
 		) );
 
-		$slots = ! empty( $attributes['contentSlots'] )
-			? array_filter( explode( ',', $attributes['contentSlots'] ) )
-			: array( 'title', 'date_time' );
+		$slots = $this->get_slots( $attributes );
 
 		$wrapper_attrs = get_block_wrapper_attributes( array( 'class' => 'carkeek-events-archive-block' ) );
 
@@ -144,6 +143,8 @@ class CarkeekEvents_Block {
 		}
 
 		echo '<div class="' . esc_attr( implode( ' ', $list_classes ) ) . '">';
+
+		$this->prime_linked_posts( $query->posts, $config['is_alt'] );
 
 		while ( $query->have_posts() ) {
 			$query->the_post();
@@ -183,6 +184,55 @@ class CarkeekEvents_Block {
 	}
 
 	// -----------------------------------------------------------------------
+	// Post type configuration (carkeek_event or alternative CPT)
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Resolve the active post type configuration from block attributes.
+	 *
+	 * Returns an array with keys: post_type, start_meta, end_meta, taxonomy, is_alt.
+	 * Falls back to carkeek_event defaults if the alternative post type is missing
+	 * or refers to an unregistered post type.
+	 *
+	 * @since 2.1.0
+	 * @param array $attributes Block attributes.
+	 * @return array
+	 */
+	private function get_post_type_config( $attributes ) {
+		$use_alt = ! empty( $attributes['useAltPostType'] );
+
+		if ( $use_alt ) {
+			$post_type  = sanitize_key( $attributes['altPostType'] ?? '' );
+			$start_meta = sanitize_key( $attributes['altStartMetaKey'] ?? '' );
+			$end_meta   = sanitize_key( $attributes['altEndMetaKey'] ?? '' );
+			$taxonomy   = sanitize_key( $attributes['altTaxonomy'] ?? '' );
+
+			// Guard: fall back to carkeek_event if CPT or start meta are missing/invalid.
+			if ( ! $post_type || ! $start_meta || ! post_type_exists( $post_type ) ) {
+				$use_alt = false;
+			}
+		}
+
+		if ( ! $use_alt ) {
+			return array(
+				'post_type'  => 'carkeek_event',
+				'start_meta' => '_carkeek_event_start',
+				'end_meta'   => '_carkeek_event_end',
+				'taxonomy'   => 'carkeek_event_category',
+				'is_alt'     => false,
+			);
+		}
+
+		return array(
+			'post_type'  => $post_type,
+			'start_meta' => $start_meta,
+			'end_meta'   => $end_meta,
+			'taxonomy'   => $taxonomy,
+			'is_alt'     => true,
+		);
+	}
+
+	// -----------------------------------------------------------------------
 	// Query builder (shared by render() and ajax_load_more())
 	// -----------------------------------------------------------------------
 
@@ -195,25 +245,27 @@ class CarkeekEvents_Block {
 	 * @return array WP_Query args (already passed through the filter).
 	 */
 	private function build_query_args( $attributes, $offset = 0 ) {
-		$now       = current_time( 'Y-m-d\TH:i:s' );
+		$now    = current_time( 'Y-m-d\TH:i:s' );
+		$config = $this->get_post_type_config( $attributes );
+
 		$num_posts = isset( $attributes['numberOfPosts'] ) ? (int) $attributes['numberOfPosts'] : 6;
 
 		$args = array(
-			'post_type'      => 'carkeek_event',
+			'post_type'      => $config['post_type'],
 			'post_status'    => 'publish',
 			'posts_per_page' => ( -1 === $num_posts ) ? -1 : max( 1, $num_posts ),
-			'meta_key'       => '_carkeek_event_start',
+			'meta_key'       => $config['start_meta'],
 			'orderby'        => 'meta_value',
-			'order'          => ! empty( $attributes['sortOrder'] ) ? $attributes['sortOrder'] : 'ASC',
+			'order'          => ( isset( $attributes['sortOrder'] ) && 'DESC' === strtoupper( $attributes['sortOrder'] ) ) ? 'DESC' : 'ASC',
 			'meta_query'     => array(
 				'relation' => 'AND',
-				array(
-					'relation' => 'OR',
-					array( 'key' => '_carkeek_event_hidden', 'compare' => 'NOT EXISTS' ),
-					array( 'key' => '_carkeek_event_hidden', 'value'   => '1', 'compare' => '!=' ),
-				),
 			),
 		);
+
+		// Hidden event exclusion only applies to carkeek_event.
+		if ( ! $config['is_alt'] ) {
+			$args['meta_query'][] = CarkeekEvents_Query::hidden_exclusion_clause();
+		}
 
 		if ( $offset > 0 ) {
 			$args['offset'] = $offset;
@@ -221,28 +273,29 @@ class CarkeekEvents_Block {
 
 		$include_past = ! empty( $attributes['includePastEvents'] );
 		$only_past    = ! empty( $attributes['onlyPastEvents'] );
+		$end_meta     = $config['end_meta'];
 
-		if ( $only_past ) {
+		if ( $only_past && $end_meta ) {
 			$args['meta_query'][] = array(
-				'key' => '_carkeek_event_end', 'value' => $now, 'compare' => '<', 'type' => 'CHAR',
+				'key' => $end_meta, 'value' => $now, 'compare' => '<', 'type' => 'CHAR',
 			);
-		} elseif ( ! $include_past ) {
+		} elseif ( ! $include_past && $end_meta ) {
 			$args['meta_query'][] = array(
 				'relation' => 'OR',
-				array( 'key' => '_carkeek_event_end', 'compare' => 'NOT EXISTS' ),
-				array( 'key' => '_carkeek_event_end', 'value'   => '', 'compare' => '=' ),
-				array( 'key' => '_carkeek_event_end', 'value'   => $now, 'compare' => '>=', 'type' => 'CHAR' ),
+				array( 'key' => $end_meta, 'compare' => 'NOT EXISTS' ),
+				array( 'key' => $end_meta, 'value'   => '', 'compare' => '=' ),
+				array( 'key' => $end_meta, 'value'   => $now, 'compare' => '>=', 'type' => 'CHAR' ),
 			);
 		}
 
-		if ( ! empty( $attributes['filterByCategory'] ) && ! empty( $attributes['catTermsSelected'] ) ) {
+		if ( ! empty( $attributes['filterByCategory'] ) && ! empty( $attributes['catTermsSelected'] ) && $config['taxonomy'] ) {
 			$term_ids = array_filter( array_map( 'intval', explode( ',', $attributes['catTermsSelected'] ) ) );
 			if ( $term_ids ) {
 				$operator = ( isset( $attributes['catFilterMode'] ) && 'exclude' === $attributes['catFilterMode'] )
 					? 'NOT IN' : 'IN';
 				$args['tax_query'] = array(
 					array(
-						'taxonomy' => 'carkeek_event_category',
+						'taxonomy' => $config['taxonomy'],
 						'field'    => 'term_id',
 						'terms'    => $term_ids,
 						'operator' => $operator,
@@ -274,6 +327,10 @@ class CarkeekEvents_Block {
 		}
 
 		$html .= '<div class="carkeek-event-card__content">';
+		$before_slots = apply_filters( 'carkeek_events_block_before_slots', '', $post_id, $attributes );
+		if ( $before_slots ) {
+			$html .= '<div class="carkeek-event-card__before-slots">' . wp_kses_post( $before_slots ) . '</div>';
+		}
 
 		foreach ( $slots as $slot ) {
 			$slot_html = $this->render_slot( $slot, $post_id, $permalink, $attributes );
@@ -282,6 +339,10 @@ class CarkeekEvents_Block {
 				$html .= $slot_html; // already escaped in each render_* method
 				$html .= '</div>';
 			}
+		}
+		$after_slots = apply_filters( 'carkeek_events_block_after_slots', '', $post_id, $attributes );
+		if ( $after_slots ) {
+			$html .= '<div class="carkeek-event-card__after-slots">' . wp_kses_post( $after_slots ) . '</div>';
 		}
 
 		$html .= '</div>'; // .carkeek-event-card__content
@@ -316,21 +377,28 @@ class CarkeekEvents_Block {
 			wp_send_json_error( array( 'message' => 'Show-all mode does not support load more.' ), 400 );
 		}
 
+		// Cap per-page to prevent DoS via inflated numberOfPosts from client payload.
+		$per_page = min( $per_page, 100 );
+
+		// Whitelist sortOrder to prevent unexpected values reaching WP_Query.
+		if ( isset( $attributes['sortOrder'] ) && ! in_array( strtoupper( $attributes['sortOrder'] ), array( 'ASC', 'DESC' ), true ) ) {
+			$attributes['sortOrder'] = 'ASC';
+		}
+
 		$offset = ( $page - 1 ) * $per_page;
+		$config = $this->get_post_type_config( $attributes );
 		$query  = new WP_Query( $this->build_query_args( $attributes, $offset ) );
 
-		$slots = ! empty( $attributes['contentSlots'] )
-			? array_filter( explode( ',', $attributes['contentSlots'] ) )
-			: array( 'title', 'date_time' );
-
+		$slots      = $this->get_slots( $attributes );
 		$items_html = '';
-		if ( $query->have_posts() ) {
-			while ( $query->have_posts() ) {
-				$query->the_post();
-				$post_id    = get_the_ID();
-				$permalink  = get_permalink( $post_id );
-				$items_html .= $this->render_single_card( $post_id, $permalink, $slots, $attributes );
-			}
+
+		$this->prime_linked_posts( $query->posts, $config['is_alt'] );
+
+		while ( $query->have_posts() ) {
+			$query->the_post();
+			$post_id    = get_the_ID();
+			$permalink  = get_permalink( $post_id );
+			$items_html .= $this->render_single_card( $post_id, $permalink, $slots, $attributes );
 		}
 
 		$has_more = ( $offset + $per_page ) < (int) $query->found_posts;
@@ -341,6 +409,64 @@ class CarkeekEvents_Block {
 			'nextPage'  => $page,
 			'hasMore'   => $has_more,
 		) );
+	}
+
+	/**
+	 * Parse the contentSlots attribute into an ordered array of slot identifiers.
+	 *
+	 * @since 2.1.0
+	 * @param array $attributes Block attributes.
+	 * @return array
+	 */
+	private function get_slots( $attributes ) {
+		return ! empty( $attributes['contentSlots'] )
+			? array_filter( explode( ',', $attributes['contentSlots'] ) )
+			: array( 'title', 'date_time' );
+	}
+
+	/**
+	 * Prime the WordPress object cache with linked location and organizer posts
+	 * before the render loop to avoid N+1 queries per card.
+	 * Only runs for carkeek_event — alt CPTs do not use location/organizer IDs.
+	 *
+	 * @since 2.1.0
+	 * @param int[]  $post_ids   Array of event post IDs from WP_Query.
+	 * @param bool   $is_alt     True when rendering an alternative post type.
+	 * @return void
+	 */
+	private function prime_linked_posts( $post_ids, $is_alt = false ) {
+		if ( $is_alt ) {
+			return;
+		}
+		if ( empty( $post_ids ) ) {
+			return;
+		}
+
+		$loc_ids = array_filter( array_unique( array_map( function( $id ) {
+			return (int) get_post_meta( $id, '_carkeek_event_location_id', true );
+		}, $post_ids ) ) );
+
+		$org_ids = array_filter( array_unique( array_map( function( $id ) {
+			return (int) get_post_meta( $id, '_carkeek_event_organizer_id', true );
+		}, $post_ids ) ) );
+
+		if ( $loc_ids ) {
+			get_posts( array(
+				'post__in'       => array_values( $loc_ids ),
+				'post_type'      => 'carkeek_location',
+				'posts_per_page' => count( $loc_ids ),
+				'no_found_rows'  => true,
+			) );
+		}
+
+		if ( $org_ids ) {
+			get_posts( array(
+				'post__in'       => array_values( $org_ids ),
+				'post_type'      => 'carkeek_organizer',
+				'posts_per_page' => count( $org_ids ),
+				'no_found_rows'  => true,
+			) );
+		}
 	}
 
 	// -----------------------------------------------------------------------
@@ -378,6 +504,12 @@ class CarkeekEvents_Block {
 			case 'excerpt':
 				return $this->render_excerpt( $post_id, $attributes );
 
+			case 'button_link':
+				$label = ! empty( $attributes['buttonLinkLabel'] )
+					? esc_html( $attributes['buttonLinkLabel'] )
+					: esc_html( get_the_title( $post_id ) );
+				return '<a class="arrow-link" href="' . esc_url( $permalink ) . '">' . $label . '</a>';
+
 			default:
 				return '';
 		}
@@ -396,8 +528,9 @@ class CarkeekEvents_Block {
 	 * @return string HTML with span-wrapped date/time values, or empty string.
 	 */
 	private function render_date_slot( $slot, $post_id, $attributes ) {
-		$start_iso = get_post_meta( $post_id, '_carkeek_event_start', true );
-		$end_iso   = get_post_meta( $post_id, '_carkeek_event_end', true );
+		$config    = $this->get_post_type_config( $attributes );
+		$start_iso = get_post_meta( $post_id, $config['start_meta'], true );
+		$end_iso   = $config['end_meta'] ? get_post_meta( $post_id, $config['end_meta'], true ) : '';
 
 		if ( ! $start_iso ) {
 			return '';

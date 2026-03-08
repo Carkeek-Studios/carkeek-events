@@ -87,9 +87,10 @@ class CarkeekEvents_Geocode {
 		$response = wp_remote_get( $url, array( 'timeout' => 10 ) );
 
 		if ( is_wp_error( $response ) ) {
+			error_log( 'CarkeekEvents geocode request failed: ' . $response->get_error_message() );
 			wp_send_json_error( array(
 				'code'    => 'request_failed',
-				'message' => $response->get_error_message(),
+				'message' => __( 'Geocoding request failed. Please try again.', 'carkeek-events' ),
 			) );
 		}
 
@@ -126,16 +127,18 @@ class CarkeekEvents_Geocode {
 		}
 
 		if ( 'REQUEST_DENIED' === $body['status'] || 'OVER_QUERY_LIMIT' === $body['status'] ) {
+			error_log( 'CarkeekEvents geocode API error: ' . $body['status'] . ' — ' . ( $body['error_message'] ?? '' ) );
 			wp_send_json_error( array(
 				'code'    => strtolower( $body['status'] ),
-				'message' => $body['error_message'] ?? __( 'Google Maps request denied.', 'carkeek-events' ),
+				'message' => __( 'Google Maps request denied. Please check your API key settings.', 'carkeek-events' ),
 			) );
 		}
 
 		if ( 'OK' !== $body['status'] || empty( $body['results'][0] ) ) {
+			error_log( 'CarkeekEvents geocode unexpected status: ' . $body['status'] . ' — ' . ( $body['error_message'] ?? '' ) );
 			wp_send_json_error( array(
 				'code'    => 'api_error',
-				'message' => $body['error_message'] ?? __( 'Geocoding failed.', 'carkeek-events' ),
+				'message' => __( 'Geocoding failed. Please try again or enter coordinates manually.', 'carkeek-events' ),
 			) );
 		}
 
@@ -143,6 +146,11 @@ class CarkeekEvents_Geocode {
 		$lat      = (string) $location['lat'];
 		$lng      = (string) $location['lng'];
 		$post_id  = absint( $_POST['post_id'] ?? 0 );
+
+		// Validate that post_id belongs to a carkeek_location before firing the hook.
+		if ( $post_id && 'carkeek_location' !== get_post_type( $post_id ) ) {
+			$post_id = 0;
+		}
 
 		// Fire action so add-ons can hook in.
 		do_action( 'carkeek_events_after_geocode', $post_id, $lat, $lng );

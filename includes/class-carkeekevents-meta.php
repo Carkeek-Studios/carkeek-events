@@ -39,8 +39,10 @@ class CarkeekEvents_Meta {
 	 * @return void
 	 */
 	public function register_meta_fields() {
-		$auth_callback = function() {
-			return current_user_can( 'edit_posts' );
+		// Use edit_post (singular, with post ID) so ownership is respected:
+		// Contributors can only edit meta on their own posts, not arbitrary ones.
+		$auth_callback = function( $allowed, $meta_key, $object_id ) {
+			return current_user_can( 'edit_post', $object_id );
 		};
 
 		// ---------------------------------------------------------------
@@ -121,11 +123,25 @@ class CarkeekEvents_Meta {
 		) );
 
 		// Hidden flag. '1' = excluded from archive listings, but direct URL still works.
-		// Set manually via meta box checkbox, or automatically by cron when event end date passes.
+		// Set by the block editor sidebar plugin via the REST API, or automatically by cron
+		// when the event end date passes.
 		register_meta( 'post', '_carkeek_event_hidden', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
 			'single'         => true,
+			'default'        => '0',
+			'show_in_rest'   => true,
+			'auth_callback'  => $auth_callback,
+		) );
+
+		// Manual restore flag. '1' = an editor explicitly unhid this event via the sidebar.
+		// The daily cron checks this flag and will not auto-re-hide events where it is set.
+		// Cleared (set to '0') when an editor manually hides an event.
+		register_meta( 'post', '_carkeek_event_manually_restored', array(
+			'object_subtype' => 'carkeek_event',
+			'type'           => 'string',
+			'single'         => true,
+			'default'        => '0',
 			'show_in_rest'   => true,
 			'auth_callback'  => $auth_callback,
 		) );

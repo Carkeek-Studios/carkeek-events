@@ -27,6 +27,7 @@ const SLOT_OPTIONS = [
 	{ value: 'location', label: __( 'Location', 'carkeek-events' ) },
 	{ value: 'organizer', label: __( 'Organizer', 'carkeek-events' ) },
 	{ value: 'excerpt', label: __( 'Excerpt', 'carkeek-events' ) },
+	{ value: 'button_link', label: __( 'Button Link', 'carkeek-events' ) },
 ];
 
 const DATE_SLOT_VALUES = [ 'date_time', 'date', 'time' ];
@@ -56,6 +57,12 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		slotDateFormat,
 		slotTimeFormat,
 		showEndDateTime,
+		buttonLinkLabel,
+		useAltPostType,
+		altPostType,
+		altStartMetaKey,
+		altEndMetaKey,
+		altTaxonomy,
 	} = attributes;
 
 	// -----------------------------------------------------------------------
@@ -64,6 +71,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 	const slots = contentSlots ? contentSlots.split( ',' ).filter( Boolean ) : [];
 	const hasDateSlot = slots.some( ( s ) => DATE_SLOT_VALUES.includes( s ) );
 	const hasExcerptSlot = slots.includes( 'excerpt' );
+	const hasButtonLinkSlot = slots.includes( 'button_link' );
 
 	const visibleCount = Math.min( MAX_SLOTS, slots.length + 1 );
 
@@ -85,25 +93,43 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 	};
 
 	// -----------------------------------------------------------------------
-	// Categories
+	// Alternative post type — registered CPTs and their taxonomies
 	// -----------------------------------------------------------------------
+	const postTypes = useSelect( ( select ) => {
+		return select( 'core' ).getPostTypes( { per_page: -1 } );
+	}, [] );
+
+	const altTaxonomies = useSelect( ( select ) => {
+		if ( ! useAltPostType || ! altPostType ) {
+			return [];
+		}
+		const all = select( 'core' ).getTaxonomies( { per_page: -1 } ) || [];
+		return all.filter( ( tax ) => tax.types && tax.types.includes( altPostType ) );
+	}, [ useAltPostType, altPostType ] );
+
+	// -----------------------------------------------------------------------
+	// Categories (carkeek_event_category, or altTaxonomy when in alt mode)
+	// -----------------------------------------------------------------------
+	const taxonomySlug = ( useAltPostType && altTaxonomy ) ? altTaxonomy : 'carkeek_event_category';
+	const showCategoryPanel = useAltPostType ? !! altTaxonomy : true;
+
 	const categories = useSelect( ( select ) => {
+		if ( ! showCategoryPanel ) {
+			return null;
+		}
 		return select( 'core' ).getEntityRecords(
 			'taxonomy',
-			'carkeek_event_category',
+			taxonomySlug,
 			{ per_page: -1, orderby: 'name', order: 'asc' }
 		);
-	}, [] );
+	}, [ taxonomySlug, showCategoryPanel ] );
 
 	const selectedTermIds = catTermsSelected
 		? catTermsSelected.split( ',' ).map( Number ).filter( Boolean )
 		: [];
 
-	const handleCategoryMultiSelect = ( e ) => {
-		const selected = Array.from( e.target.selectedOptions ).map( ( opt ) =>
-			parseInt( opt.value, 10 )
-		);
-		setAttributes( { catTermsSelected: selected.join( ',' ) } );
+	const handleCategoryMultiSelect = ( values ) => {
+		setAttributes( { catTermsSelected: values.join( ',' ) } );
 	};
 
 	// -----------------------------------------------------------------------
@@ -144,6 +170,67 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 					onChange={ ( value ) => setAttributes( { sortOrder: value } ) }
 					__nextHasNoMarginBottom
 				/>
+				<hr style={ { margin: '12px 0' } } />
+				<ToggleControl
+					label={ __( 'Use Alternative Post Type', 'carkeek-events' ) }
+					help={ __( 'Display a different post type instead of Events. The post type must have REST API support enabled.', 'carkeek-events' ) }
+					checked={ useAltPostType }
+					onChange={ ( value ) => setAttributes( {
+						useAltPostType: value,
+						...( ! value && { altPostType: '', altStartMetaKey: '', altEndMetaKey: '', altTaxonomy: '' } ),
+					} ) }
+					__nextHasNoMarginBottom
+				/>
+				{ useAltPostType && (
+					<>
+						<SelectControl
+							label={ __( 'Post Type', 'carkeek-events' ) }
+							value={ altPostType }
+							options={ [
+								{ label: __( '— select —', 'carkeek-events' ), value: '' },
+								...( postTypes || [] )
+									.filter( ( pt ) => ! [ 'attachment', 'wp_block', 'wp_template', 'wp_template_part', 'wp_navigation' ].includes( pt.slug ) )
+									.map( ( pt ) => ( { label: pt.name, value: pt.slug } ) ),
+							] }
+							onChange={ ( value ) => setAttributes( {
+								altPostType: value,
+								altTaxonomy: '',
+								catTermsSelected: '',
+							} ) }
+							__nextHasNoMarginBottom
+						/>
+						<TextControl
+							label={ __( 'Start Date Meta Key', 'carkeek-events' ) }
+							help={ __( 'Meta key storing start datetime in ISO 8601 format, e.g. 2026-03-15T10:00:00', 'carkeek-events' ) }
+							value={ altStartMetaKey }
+							placeholder="_event_start"
+							onChange={ ( value ) => setAttributes( { altStartMetaKey: value } ) }
+							__nextHasNoMarginBottom
+						/>
+						<TextControl
+							label={ __( 'End Date Meta Key', 'carkeek-events' ) }
+							help={ __( 'If no end date field, add the start date field here to exclude events after they start.', 'carkeek-events' ) }
+							value={ altEndMetaKey }
+							placeholder="_event_end"
+							onChange={ ( value ) => setAttributes( { altEndMetaKey: value } ) }
+							__nextHasNoMarginBottom
+						/>
+						{ altPostType && altTaxonomies.length > 0 && (
+							<SelectControl
+								label={ __( 'Taxonomy (for category filter)', 'carkeek-events' ) }
+								help={ __( 'Only taxonomies with REST support registered to this post type are shown.', 'carkeek-events' ) }
+								value={ altTaxonomy }
+								options={ [
+									{ label: __( '— none —', 'carkeek-events' ), value: '' },
+									...altTaxonomies.map( ( tax ) => ( { label: tax.name, value: tax.slug } ) ),
+								] }
+								onChange={ ( value ) => setAttributes( { altTaxonomy: value, catTermsSelected: '' } ) }
+								__nextHasNoMarginBottom
+							/>
+						) }
+					</>
+				) }
+				<hr style={ { margin: '12px 0' } } />
 				<ToggleControl
 					label={ __( 'Include Past Events', 'carkeek-events' ) }
 					help={ __( 'Show events whose end date has already passed.', 'carkeek-events' ) }
@@ -158,69 +245,50 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 						onChange={ ( value ) => setAttributes( { onlyPastEvents: value } ) }
 					/>
 				) }
-				<ToggleControl
-					label={ __( 'Filter by Category', 'carkeek-events' ) }
-					checked={ filterByCategory }
-					onChange={ ( value ) => setAttributes( { filterByCategory: value } ) }
-					__nextHasNoMarginBottom
-				/>
-				{ filterByCategory && (
-					<PanelRow>
-						<div style={ { width: '100%' } }>
-							<RadioControl
-								label={ __( 'Filter mode', 'carkeek-events' ) }
-								selected={ catFilterMode || 'include' }
-								options={ [
-									{ label: __( 'Include selected', 'carkeek-events' ), value: 'include' },
-									{ label: __( 'Exclude selected', 'carkeek-events' ), value: 'exclude' },
-								] }
-								onChange={ ( value ) => setAttributes( { catFilterMode: value } ) }
+				{ showCategoryPanel && (
+					<ToggleControl
+						label={ __( 'Filter by Category', 'carkeek-events' ) }
+						checked={ filterByCategory }
+						onChange={ ( value ) => setAttributes( { filterByCategory: value } ) }
+						__nextHasNoMarginBottom
+					/>
+				) }
+				{ showCategoryPanel && filterByCategory && (
+					<>
+						<RadioControl
+							label={ __( 'Filter mode', 'carkeek-events' ) }
+							selected={ catFilterMode || 'include' }
+							options={ [
+								{ label: __( 'Include selected', 'carkeek-events' ), value: 'include' },
+								{ label: __( 'Exclude selected', 'carkeek-events' ), value: 'exclude' },
+							] }
+							onChange={ ( value ) => setAttributes( { catFilterMode: value } ) }
+						/>
+						{ categories ? (
+							<SelectControl
+								label={ __( 'Categories', 'carkeek-events' ) }
+								multiple
+								value={ selectedTermIds.map( String ) }
+								options={ categories.map( ( term ) => ( { label: term.name, value: String( term.id ) } ) ) }
+								onChange={ handleCategoryMultiSelect }
+								__nextHasNoMarginBottom
 							/>
-							{ categories ? (
-								<>
-									<p style={ { margin: '4px 0 4px', fontSize: 11, color: '#757575' } }>
-										{ __( 'Hold Ctrl / Cmd to select multiple.', 'carkeek-events' ) }
-									</p>
-									<select
-										multiple
-										size={ Math.min( 8, categories.length || 4 ) }
-										value={ selectedTermIds.map( String ) }
-										onChange={ handleCategoryMultiSelect }
-										style={ {
-											width: '100%',
-											minHeight: 100,
-											maxHeight: 180,
-											overflowY: 'auto',
-											border: '1px solid #949494',
-											borderRadius: 2,
-											padding: '2px 4px',
-											fontSize: 13,
-										} }
-									>
-										{ categories.map( ( term ) => (
-											<option key={ term.id } value={ String( term.id ) }>
-												{ term.name }
-											</option>
-										) ) }
-									</select>
-									{ selectedTermIds.length > 0 && (
-										<Button
-											variant="link"
-											isDestructive
-											style={ { marginTop: 4, fontSize: 11 } }
-											onClick={ () => setAttributes( { catTermsSelected: '' } ) }
-										>
-											{ __( 'Clear selection', 'carkeek-events' ) }
-										</Button>
-									) }
-								</>
-							) : (
-								<p style={ { fontSize: 12, color: '#757575' } }>
-									{ __( 'Loading categories…', 'carkeek-events' ) }
-								</p>
-							) }
-						</div>
-					</PanelRow>
+						) : (
+							<p style={ { fontSize: 12, color: '#757575' } }>
+								{ __( 'Loading categories…', 'carkeek-events' ) }
+							</p>
+						) }
+						{ selectedTermIds.length > 0 && (
+							<Button
+								variant="link"
+								isDestructive
+								style={ { marginTop: 4, fontSize: 11 } }
+								onClick={ () => setAttributes( { catTermsSelected: '' } ) }
+							>
+								{ __( 'Clear selection', 'carkeek-events' ) }
+							</Button>
+						) }
+					</>
 				) }
 			</PanelBody>
 
@@ -301,7 +369,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 					<Flex key={ index } align="center" style={ { marginBottom: 8 } }>
 						<FlexBlock>
 							<SelectControl
-								label={ `${ __( 'Slot', 'carkeek-events' ) } ${ index + 1 }` }
+								label={ __( 'Slots', 'carkeek-events' ) }
 								hideLabelFromVision={ index > 0 }
 								value={ slots[ index ] || '' }
 								options={ getSlotOptions( index ) }
@@ -372,6 +440,21 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 							onChange={ ( value ) => setAttributes( { excerptLength: value } ) }
 							min={ 10 }
 							max={ 100 }
+						/>
+					</>
+				) }
+
+				{ /* Button link label — shown when button_link slot is active */ }
+				{ hasButtonLinkSlot && (
+					<>
+						<hr style={ { margin: '12px 0' } } />
+						<TextControl
+							label={ __( 'Button Label', 'carkeek-events' ) }
+							help={ __( 'Text for the arrow link button. Defaults to the post title if blank.', 'carkeek-events' ) }
+							value={ buttonLinkLabel }
+							placeholder={ __( 'More Info', 'carkeek-events' ) }
+							onChange={ ( value ) => setAttributes( { buttonLinkLabel: value } ) }
+							__nextHasNoMarginBottom
 						/>
 					</>
 				) }

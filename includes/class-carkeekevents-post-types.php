@@ -181,43 +181,33 @@ class CarkeekEvents_Post_Types {
 	 * @return void
 	 */
 	public function clear_stale_location_organizer_ids( $post_id ) {
+		global $wpdb;
+
 		$post = get_post( $post_id );
 		if ( ! $post ) {
 			return;
 		}
 
 		if ( 'carkeek_location' === $post->post_type ) {
-			$events = get_posts( array(
-				'post_type'      => 'carkeek_event',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'meta_query'     => array(
-					array(
-						'key'   => '_carkeek_event_location_id',
-						'value' => $post_id,
-					),
+			$wpdb->delete(
+				$wpdb->postmeta,
+				array(
+					'meta_key'   => '_carkeek_event_location_id',
+					'meta_value' => $post_id,
 				),
-			) );
-			foreach ( $events as $event_id ) {
-				delete_post_meta( $event_id, '_carkeek_event_location_id' );
-			}
+				array( '%s', '%d' )
+			);
 		}
 
 		if ( 'carkeek_organizer' === $post->post_type ) {
-			$events = get_posts( array(
-				'post_type'      => 'carkeek_event',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'meta_query'     => array(
-					array(
-						'key'   => '_carkeek_event_organizer_id',
-						'value' => $post_id,
-					),
+			$wpdb->delete(
+				$wpdb->postmeta,
+				array(
+					'meta_key'   => '_carkeek_event_organizer_id',
+					'meta_value' => $post_id,
 				),
-			) );
-			foreach ( $events as $event_id ) {
-				delete_post_meta( $event_id, '_carkeek_event_organizer_id' );
-			}
+				array( '%s', '%d' )
+			);
 		}
 	}
 }
