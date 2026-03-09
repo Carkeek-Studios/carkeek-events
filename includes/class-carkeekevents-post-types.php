@@ -81,19 +81,19 @@ class CarkeekEvents_Post_Types {
 
 		// --- carkeek_location ---
 		$location_labels = array(
-			'name'               => _x( 'Locations', 'Post type general name', 'carkeek-events' ),
-			'singular_name'      => _x( 'Location', 'Post type singular name', 'carkeek-events' ),
-			'menu_name'          => _x( 'Locations', 'Admin Menu text', 'carkeek-events' ),
-			'name_admin_bar'     => _x( 'Location', 'Add New on Toolbar', 'carkeek-events' ),
-			'add_new'            => __( 'Add New Location', 'carkeek-events' ),
-			'add_new_item'       => __( 'Add New Location', 'carkeek-events' ),
-			'new_item'           => __( 'New Location', 'carkeek-events' ),
-			'edit_item'          => __( 'Edit Location', 'carkeek-events' ),
-			'view_item'          => __( 'View Location', 'carkeek-events' ),
-			'all_items'          => __( 'All Locations', 'carkeek-events' ),
-			'search_items'       => __( 'Search Locations', 'carkeek-events' ),
-			'not_found'          => __( 'No locations found.', 'carkeek-events' ),
-			'not_found_in_trash' => __( 'No locations found in Trash.', 'carkeek-events' ),
+			'name'               => _x( 'Event Locations', 'Post type general name', 'carkeek-events' ),
+			'singular_name'      => _x( 'Event Location', 'Post type singular name', 'carkeek-events' ),
+			'menu_name'          => _x( 'Event Locations', 'Admin Menu text', 'carkeek-events' ),
+			'name_admin_bar'     => _x( 'Event Location', 'Add New on Toolbar', 'carkeek-events' ),
+			'add_new'            => __( 'Add New Event Location', 'carkeek-events' ),
+			'add_new_item'       => __( 'Add New Event Location', 'carkeek-events' ),
+			'new_item'           => __( 'New Event Location', 'carkeek-events' ),
+			'edit_item'          => __( 'Edit Event Location', 'carkeek-events' ),
+			'view_item'          => __( 'View Event Location', 'carkeek-events' ),
+			'all_items'          => __( 'All Event Locations', 'carkeek-events' ),
+			'search_items'       => __( 'Search Event Locations', 'carkeek-events' ),
+			'not_found'          => __( 'No Event Locations found.', 'carkeek-events' ),
+			'not_found_in_trash' => __( 'No Event Locations found in Trash.', 'carkeek-events' ),
 		);
 
 		register_post_type(
