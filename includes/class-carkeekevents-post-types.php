@@ -104,7 +104,7 @@ class CarkeekEvents_Post_Types {
 				'show_in_rest'  => true,
 				'show_in_menu'  => 'edit.php?post_type=carkeek_event',
 				'supports'      => array( 'title', 'editor', 'thumbnail' ),
-				'rewrite'       => array( 'slug' => 'locations', 'with_front' => false ),
+				'rewrite'       => array( 'slug' => 'event-locations', 'with_front' => false ),
 			)
 		);
 
@@ -133,7 +133,7 @@ class CarkeekEvents_Post_Types {
 				'show_in_rest'  => true,
 				'show_in_menu'  => 'edit.php?post_type=carkeek_event',
 				'supports'      => array( 'title', 'editor', 'thumbnail' ),
-				'rewrite'       => array( 'slug' => 'organizers', 'with_front' => false ),
+				'rewrite'       => array( 'slug' => 'event-organizers', 'with_front' => false ),
 			)
 		);
 	}
