@@ -41,6 +41,7 @@
     "altTaxonomy":          { "type": "string",  "default": "" }
   },
   "viewScript": "file:./view.js",
+  "editorStyle": "file:./index.css",
   "supports": {
     "align": ["wide", "full"],
     "color": {

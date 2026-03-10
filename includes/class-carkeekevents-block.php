@@ -321,8 +321,16 @@ class CarkeekEvents_Block {
 		$html = '<div class="carkeek-event-card">';
 
 		if ( ! empty( $attributes['displayFeaturedImage'] ) && has_post_thumbnail( $post_id ) ) {
+			$focal_point = get_post_meta( $post_id, '_carkeekblocks_featured_image_focal_point', true );
+			$style       = '';
+			if ( ! empty( $focal_point ) ) {
+				$x     = $focal_point['x'] * 100;
+				$y     = $focal_point['y'] * 100;
+				$style = 'object-position:' . esc_attr( $x ) . '% ' . esc_attr( $y ) . '%;';
+			}
+
 			$html .= '<a class="carkeek-event-card__image-link" href="' . esc_url( $permalink ) . '">';
-			$html .= get_the_post_thumbnail( $post_id, 'medium_large' );
+			$html .= get_the_post_thumbnail( $post_id, 'large', array( 'style' => $style ) );
 			$html .= '</a>';
 		}
 

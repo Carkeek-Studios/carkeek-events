@@ -1,0 +1,23 @@
+.wp-block-carkeek-events-archive {
+	border: 2px solid #ebebeb;
+	padding: 1rem;
+
+	& .wp-block-carkeek-blocks-custom-archive__list {
+		opacity: 0.8;
+	}
+
+	& .wp-block-carkeek-blocks-custom-archive__title {
+		font-weight: 700;
+	}
+
+	& > div {
+		background-color: #e9e9eb;
+	}
+
+	& .ck-modal-item .ck-modal-item-dialog {
+		display: none;
+	}
+}
+
+
+
