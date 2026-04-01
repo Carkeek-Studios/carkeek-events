@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "carkeek-events/event-date-time",
+  "title": "Event Date & Time",
+  "category": "widgets",
+  "description": "Displays the date and time for a Carkeek Event.",
+  "keywords": ["event", "date", "time", "carkeek"],
+  "textdomain": "carkeek-events",
+  "usesContext": ["postId", "postType"],
+  "postTypes": ["carkeek_event"],
+  "supports": {
+    "html": false
+  },
+  "editorScript": "file:./index.js",
+  "render": "file:./render.php"
+}

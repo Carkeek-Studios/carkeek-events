@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "carkeek-events/event-organizer",
+  "title": "Event Organizer",
+  "category": "widgets",
+  "description": "Displays the organizer for a Carkeek Event.",
+  "keywords": [
+    "event",
+    "organizer",
+    "host",
+    "carkeek"
+  ],
+  "textdomain": "carkeek-events",
+  "usesContext": [
+    "postId",
+    "postType"
+  ],
+  "postTypes": [
+    "carkeek_event"
+  ],
+  "supports": {
+    "html": false
+  },
+  "editorScript": "file:./index.js",
+  "render": "file:./render.php"
+}

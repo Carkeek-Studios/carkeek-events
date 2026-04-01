@@ -1,0 +1,10 @@
+.wp-block-carkeek-events-event-details  {
+	& .carkeek-event-details-inner {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		& .carkeek-event-label {
+			display: block;
+		}
+	}
+}

@@ -173,28 +173,6 @@ class CarkeekEvents_Meta_Boxes {
 
 			<?php do_action( 'carkeek_events_meta_box_after_organizer', $post ); ?>
 
-			<hr />
-
-			<div class="carkeek-events-row">
-				<div class="carkeek-events-col carkeek-events-col--full">
-					<label for="carkeek_event_website"><?php esc_html_e( 'Event Website / Registration URL', 'carkeek-events' ); ?></label>
-					<input type="url" id="carkeek_event_website" name="carkeek_event_website"
-						value="<?php echo esc_attr( $event_website ); ?>" class="widefat"
-						placeholder="https://" />
-					<p class="description"><?php esc_html_e( 'When set, a button linking to this URL will appear in event templates.', 'carkeek-events' ); ?></p>
-				</div>
-			</div>
-
-			<div class="carkeek-events-row">
-				<div class="carkeek-events-col">
-					<label for="carkeek_event_button_label"><?php esc_html_e( 'Button Label', 'carkeek-events' ); ?></label>
-					<input type="text" id="carkeek_event_button_label" name="carkeek_event_button_label"
-						value="<?php echo esc_attr( $event_btn_label ); ?>"
-						placeholder="<?php esc_attr_e( 'Sign Up', 'carkeek-events' ); ?>" />
-					<p class="description"><?php esc_html_e( 'Defaults to "Sign Up" if left blank.', 'carkeek-events' ); ?></p>
-				</div>
-			</div>
-
 			<?php do_action( 'carkeek_events_meta_box_after_link', $post ); ?>
 
 		</div>
@@ -388,10 +366,6 @@ class CarkeekEvents_Meta_Boxes {
 			delete_post_meta( $post_id, '_carkeek_event_end' );
 		}
 
-		// Note: _carkeek_event_hidden is managed exclusively by the block editor
-		// sidebar plugin (src/event-editor/index.js) via the REST API. It is not
-		// saved here to avoid the meta box form overwriting the REST-saved value.
-
 		// Location.
 		$location_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_location_mode'] ?? 'cpt' ) );
 		if ( 'new' === $location_mode ) {
@@ -422,25 +396,6 @@ class CarkeekEvents_Meta_Boxes {
 			update_post_meta( $post_id, '_carkeek_event_organizer_id', $organizer_id );
 		}
 
-		// Event website URL.
-		if ( isset( $_POST['carkeek_event_website'] ) ) {
-			$url = esc_url_raw( wp_unslash( $_POST['carkeek_event_website'] ) );
-			if ( $url ) {
-				update_post_meta( $post_id, '_carkeek_event_website', $url );
-			} else {
-				delete_post_meta( $post_id, '_carkeek_event_website' );
-			}
-		}
-
-		// Button label.
-		if ( isset( $_POST['carkeek_event_button_label'] ) ) {
-			$label = sanitize_text_field( wp_unslash( $_POST['carkeek_event_button_label'] ) );
-			if ( $label ) {
-				update_post_meta( $post_id, '_carkeek_event_button_label', $label );
-			} else {
-				delete_post_meta( $post_id, '_carkeek_event_button_label' );
-			}
-		}
 	}
 
 	/**

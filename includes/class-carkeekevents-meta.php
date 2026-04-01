@@ -104,7 +104,9 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// External website / registration URL. When set, templates render a CTA button.
+		// External website / registration URL. The classic meta box UI was removed in favour of
+		// the core Button block, but the meta key is retained so existing data is preserved and
+		// themes/plugins that read it via get_post_meta() continue to work.
 		register_meta( 'post', '_carkeek_event_website', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
@@ -113,35 +115,12 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// CTA button label. Defaults to "Sign Up" at render time if blank.
+		// CTA button label. Classic meta box UI removed (see _carkeek_event_website above);
+		// retained for back-compat with any theme/plugin reading this value directly.
 		register_meta( 'post', '_carkeek_event_button_label', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
 			'single'         => true,
-			'show_in_rest'   => true,
-			'auth_callback'  => $auth_callback,
-		) );
-
-		// Hidden flag. '1' = excluded from archive listings, but direct URL still works.
-		// Set by the block editor sidebar plugin via the REST API, or automatically by cron
-		// when the event end date passes.
-		register_meta( 'post', '_carkeek_event_hidden', array(
-			'object_subtype' => 'carkeek_event',
-			'type'           => 'string',
-			'single'         => true,
-			'default'        => '0',
-			'show_in_rest'   => true,
-			'auth_callback'  => $auth_callback,
-		) );
-
-		// Manual restore flag. '1' = an editor explicitly unhid this event via the sidebar.
-		// The daily cron checks this flag and will not auto-re-hide events where it is set.
-		// Cleared (set to '0') when an editor manually hides an event.
-		register_meta( 'post', '_carkeek_event_manually_restored', array(
-			'object_subtype' => 'carkeek_event',
-			'type'           => 'string',
-			'single'         => true,
-			'default'        => '0',
 			'show_in_rest'   => true,
 			'auth_callback'  => $auth_callback,
 		) );
