@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "carkeek-events/event-details",
+  "title": "Event Details",
+  "icon": "calendar-alt",
+  "category": "widgets",
+  "description": "Displays date, location, and organizer for a Carkeek Event.",
+  "keywords": [
+    "event",
+    "details",
+    "date",
+    "location",
+    "organizer",
+    "carkeek"
+  ],
+  "textdomain": "carkeek-events",
+  "usesContext": [
+    "postId",
+    "postType"
+  ],
+  "postTypes": [
+    "carkeek_event"
+  ],
+  "supports": {
+    "html": false
+  },
+  "attributes": {
+    "dateTimeLabel": {
+      "type": "string",
+      "default": "Date & Time:"
+    },
+    "dateTimeSeparator": {
+      "type": "string",
+      "default": "<br/>"
+    },
+    "locationLabel": {
+      "type": "string",
+      "default": "Location:"
+    },
+    "organizerLabel": {
+      "type": "string",
+      "default": "Organizer:"
+    },
+    "showDirectionsLink": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "editorScript": "file:./index.js",
+  "render": "file:./render.php",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css"
+}

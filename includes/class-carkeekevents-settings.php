@@ -6,7 +6,6 @@
  * key (CARKEEKEVENTS_OPTION_NAME) as an array.
  *
  * Default values:
- *   expiry_behavior      => 'end_of_day'
  *   content_expiry_days  => 365
  *   disable_wp_archive   => '1'
  *   archive_slug         => 'events'
@@ -57,14 +56,6 @@ class CarkeekEvents_Settings {
 			__( 'Event Expiry', 'carkeek-events' ),
 			array( $this, 'expiry_section_description' ),
 			'carkeek-events'
-		);
-
-		add_settings_field(
-			'expiry_behavior',
-			__( 'Expiry Behavior', 'carkeek-events' ),
-			array( $this, 'expiry_behavior_callback' ),
-			'carkeek-events',
-			'carkeek_events_expiry_section'
 		);
 
 		add_settings_field(
@@ -171,7 +162,7 @@ class CarkeekEvents_Settings {
 	 * @return void
 	 */
 	public function expiry_section_description() {
-		echo '<p class="description">' . esc_html__( 'Control when past events are hidden from listings and when they expire. Events with no end date are never hidden or expired.', 'carkeek-events' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Control when past events are automatically trashed. Events with no end date are never expired.', 'carkeek-events' ) . '</p>';
 	}
 
 	/**
@@ -342,31 +333,6 @@ class CarkeekEvents_Settings {
 	}
 
 	/**
-	 * Expiry behavior field callback.
-	 *
-	 * @since 1.0.0
-	 * @return void
-	 */
-	public function expiry_behavior_callback() {
-		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
-		$value    = $settings['expiry_behavior'] ?? 'end_of_day';
-		$options  = array(
-			'end_of_day' => __( 'Hide at end of day (default) — event hides after midnight on its end date', 'carkeek-events' ),
-			'immediate'  => __( 'Hide immediately — event hides as soon as the end date+time passes', 'carkeek-events' ),
-			'never'      => __( 'Never auto-hide — events stay visible indefinitely', 'carkeek-events' ),
-		);
-		?>
-		<select name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[expiry_behavior]" id="carkeek_expiry_behavior">
-			<?php foreach ( $options as $key => $label ) : ?>
-				<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $value, $key ); ?>>
-					<?php echo esc_html( $label ); ?>
-				</option>
-			<?php endforeach; ?>
-		</select>
-		<?php
-	}
-
-	/**
 	 * Content expiry period field callback.
 	 *
 	 * @since 2.0.0
@@ -482,11 +448,6 @@ class CarkeekEvents_Settings {
 		$sanitized = array();
 
 		// Expiry.
-		$allowed_expiry = array( 'end_of_day', 'immediate', 'never' );
-		$sanitized['expiry_behavior'] = in_array( $input['expiry_behavior'] ?? '', $allowed_expiry, true )
-			? $input['expiry_behavior']
-			: 'end_of_day';
-
 		$expiry_days = absint( $input['content_expiry_days'] ?? 365 );
 		$sanitized['content_expiry_days'] = max( 1, $expiry_days );
 

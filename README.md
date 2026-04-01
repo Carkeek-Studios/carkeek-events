@@ -47,8 +47,6 @@ The plugin provides **no opinionated front-end styles**. It ships default templa
 | `_carkeek_event_organizer_text` | string | Free-text organizer fallback when no CPT is linked. |
 | `_carkeek_event_website` | string | External registration or info URL. When set, templates render a CTA button. |
 | `_carkeek_event_button_label` | string | CTA button label. Defaults to "Sign Up" at render time if blank. |
-| `_carkeek_event_hidden` | string | `1` = hidden from archive listings but direct URL still works. Set manually or by cron. |
-
 ### carkeek_location
 
 | Meta Key | Type | Notes |
@@ -317,7 +315,6 @@ $event_link     = CarkeekEvents_Display::get_event_link_html( $post_id );
 | `carkeek_events_meta_box_after_location` | `$post` | Add fields after location in the event meta box |
 | `carkeek_events_meta_box_after_organizer` | `$post` | Add fields after organizer in the event meta box |
 | `carkeek_events_meta_box_after_link` | `$post` | Add fields after the website/button section |
-| `carkeek_events_before_hide` | `$post_id` | Fires before cron sets `_carkeek_event_hidden = 1` |
 | `carkeek_events_before_expire` | `$post_id` | Fires before cron sets `post_status = private` |
 | `carkeek_events_after_geocode` | `$post_id, $lat, $lng` | Fires after geocoding completes |
 
@@ -329,7 +326,6 @@ All settings are stored as a single array under the option key `carkeek_events_s
 
 | Key | Default | Notes |
 |---|---|---|
-| `expiry_behavior` | `end_of_day` | `end_of_day` \| `immediate` \| `never` |
 | `content_expiry_days` | `365` | Integer, days. Events are set to `private` this many days after their end date. Minimum 1. |
 | `disable_wp_archive` | `1` | `1` = WP CPT archive disabled (use a custom Page + archive block). `0` = enabled. |
 | `archive_slug` | `events` | Slug for the WP CPT archive when enabled. Rewrite rules flush automatically on save. |
@@ -342,28 +338,13 @@ All settings are stored as a single array under the option key `carkeek_events_s
 
 ---
 
-## Event Visibility States
-
-| State | `_carkeek_event_hidden` | `post_status` | Archive | Direct URL |
-|---|---|---|---|---|
-| Active | `0` / not set | `publish` | Visible | 200 |
-| Hidden | `1` | `publish` | Excluded | 200 |
-| Expired | — | `private` | Excluded | 404 (logged-out users) |
-
-**Hidden** events are excluded from archive listings but remain accessible via their direct URL — useful for keeping old event pages reachable from blog posts. Can be set manually via the meta box checkbox, or automatically by the expiry cron.
-
-**Expired** events have `post_status = private`. WordPress returns 404 to logged-out users automatically. No data is permanently deleted — an admin can restore an expired event.
-
----
-
 ## Expiry and Cron
 
-A daily WP cron job (`carkeek_events_daily_cron`) manages event visibility automatically:
+A daily WP cron job (`carkeek_events_daily_cron`) manages event expiry automatically:
 
-1. **Pass 1 — Auto-hide:** Events whose `_carkeek_event_end` has passed (per the `expiry_behavior` setting) receive `_carkeek_event_hidden = 1`. They disappear from archive listings immediately but remain accessible via direct URL.
-2. **Pass 2 — Expire:** Events whose `_carkeek_event_end` is older than `content_expiry_days` (default 365) are set to `post_status = private`, returning 404 to visitors. No permanent deletion — posts remain in the database.
+**Expire:** Events whose `_carkeek_event_end` is older than `content_expiry_days` (default 365) are set to `post_status = private`, returning 404 to visitors. No permanent deletion — posts remain in the database.
 
-Events with no `_carkeek_event_end` are never hidden or expired.
+Events with no `_carkeek_event_end` are never expired.
 
 **Manual trigger:**
 

@@ -1,0 +1,9 @@
+.block-editor-block-list__block.wp-block-carkeek-events-event-details {
+	border: 1px solid #ccc;
+    background-color: #ebebeb;
+    padding: 10px;
+	& .note {
+		font-size: 0.875rem;
+		font-style: italic;
+	}
+}

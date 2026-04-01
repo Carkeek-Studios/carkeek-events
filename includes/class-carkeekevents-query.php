@@ -2,11 +2,9 @@
 /**
  * Query Integration
  *
- * Excludes hidden events from front-end queries and integrates with the
- * carkeek-blocks custom-archive block via its query_args filter.
- *
- * Default sort is chronological by start date (ASC) when no explicit
- * orderby is set.
+ * Applies a chronological default sort to front-end carkeek_event queries
+ * and integrates with the carkeek-blocks custom-archive block via its
+ * query_args filter.
  *
  * @package carkeek-events
  * @since   1.0.0
@@ -29,7 +27,7 @@ class CarkeekEvents_Query {
 	 */
 	public static function register() {
 		$instance = new self();
-		add_action( 'pre_get_posts', array( $instance, 'exclude_hidden_events' ) );
+		add_action( 'pre_get_posts', array( $instance, 'apply_default_sort' ) );
 
 		// Integrate with carkeek-blocks custom-archive block (only if filter exists).
 		add_filter( 'carkeek_block_custom_post_layout__query_args', array( $instance, 'inject_event_meta_query' ), 10, 2 );
@@ -39,37 +37,13 @@ class CarkeekEvents_Query {
 	}
 
 	/**
-	 * Returns the meta_query clause that excludes hidden events.
-	 *
-	 * Centralises the OR( NOT EXISTS / != '1' ) pattern so it is defined
-	 * in exactly one place and can be used by any query builder.
-	 *
-	 * @since 1.0.0
-	 * @return array WP_Query meta_query clause.
-	 */
-	public static function hidden_exclusion_clause() {
-		return array(
-			'relation' => 'OR',
-			array(
-				'key'     => '_carkeek_event_hidden',
-				'compare' => 'NOT EXISTS',
-			),
-			array(
-				'key'     => '_carkeek_event_hidden',
-				'value'   => '1',
-				'compare' => '!=',
-			),
-		);
-	}
-
-	/**
-	 * Exclude hidden events from front-end main queries.
+	 * Apply chronological default sort to front-end main queries for carkeek_event.
 	 *
 	 * @since 1.0.0
 	 * @param WP_Query $query The current WP_Query instance.
 	 * @return void
 	 */
-	public function exclude_hidden_events( $query ) {
+	public function apply_default_sort( $query ) {
 		if ( is_admin() ) {
 			return;
 		}
@@ -80,10 +54,6 @@ class CarkeekEvents_Query {
 			return;
 		}
 
-		$meta_query   = $query->get( 'meta_query' ) ?: array();
-		$meta_query[] = self::hidden_exclusion_clause();
-		$query->set( 'meta_query', $meta_query );
-
 		// Apply chronological default sort if not already set.
 		if ( ! $query->get( 'orderby' ) ) {
 			$query->set( 'orderby', 'meta_value' );
@@ -93,8 +63,7 @@ class CarkeekEvents_Query {
 	}
 
 	/**
-	 * Inject hidden-event exclusion and default sort into carkeek-blocks
-	 * custom-archive block queries for events.
+	 * Apply default sort to carkeek-blocks custom-archive block queries for events.
 	 *
 	 * @since 1.0.0
 	 * @param array $args       WP_Query args from carkeek-blocks.
@@ -108,10 +77,6 @@ class CarkeekEvents_Query {
 
 		// Allow add-ons to further modify the query args.
 		$args = apply_filters( 'carkeek_events_query_args', $args, $attributes );
-
-		// Exclude hidden events.
-		$args['meta_query']   = $args['meta_query'] ?? array();
-		$args['meta_query'][] = self::hidden_exclusion_clause();
 
 		// Apply chronological default sort if not already set.
 		if ( empty( $args['orderby'] ) || 'date' === $args['orderby'] ) {

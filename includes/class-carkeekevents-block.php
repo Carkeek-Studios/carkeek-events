@@ -50,31 +50,8 @@ class CarkeekEvents_Block {
 	public static function register() {
 		$instance = new self();
 		add_action( 'init', array( $instance, 'register_block' ) );
-		add_action( 'enqueue_block_editor_assets', array( $instance, 'enqueue_event_editor' ) );
 		add_action( 'wp_ajax_carkeek_events_load_more',        array( $instance, 'ajax_load_more' ) );
 		add_action( 'wp_ajax_nopriv_carkeek_events_load_more', array( $instance, 'ajax_load_more' ) );
-	}
-
-	/**
-	 * Enqueue the event-editor sidebar plugin script for the carkeek_event post type.
-	 *
-	 * @since 2.0.0
-	 * @return void
-	 */
-	public function enqueue_event_editor() {
-		$asset_file = CARKEEKEVENTS_PLUGIN_DIR . 'build/event-editor/index.asset.php';
-		if ( ! file_exists( $asset_file ) ) {
-			return;
-		}
-		$asset = require $asset_file;
-		wp_enqueue_script(
-			'carkeek-event-editor',
-			CARKEEKEVENTS_PLUGIN_URL . 'build/event-editor/index.js',
-			$asset['dependencies'],
-			$asset['version'],
-			true
-		);
-		wp_set_script_translations( 'carkeek-event-editor', 'carkeek-events' );
 	}
 
 	/**
@@ -263,9 +240,9 @@ class CarkeekEvents_Block {
 		);
 
 		// Hidden event exclusion only applies to carkeek_event.
-		if ( ! $config['is_alt'] ) {
-			$args['meta_query'][] = CarkeekEvents_Query::hidden_exclusion_clause();
-		}
+		// if ( ! $config['is_alt'] ) {
+		// 	$args['meta_query'][] = CarkeekEvents_Query::hidden_exclusion_clause();
+		// }
 
 		if ( $offset > 0 ) {
 			$args['offset'] = $offset;

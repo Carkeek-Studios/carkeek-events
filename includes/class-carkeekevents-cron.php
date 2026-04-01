@@ -2,14 +2,10 @@
 /**
  * Expiry Cron
  *
- * Daily cron with two passes:
- *   Pass 1 — Mark expired events as hidden (_carkeek_event_hidden = 1)
- *   Pass 2 — Trash events whose end date is older than content_expiry_days (default 365).
- *             Trashed posts are restorable via the standard Trash screen.
+ * Daily cron that trashes events whose end date is older than content_expiry_days
+ * (default 365). Trashed posts are restorable via the standard Trash screen.
  *
- * Events with no end date (_carkeek_event_end empty) are never hidden or trashed.
- * Events where _carkeek_event_manually_restored = '1' are never auto-hidden (an editor
- * explicitly restored them from the block editor sidebar).
+ * Events with no end date (_carkeek_event_end empty) are never trashed.
  * All date comparisons use ISO 8601 CHAR sorting against site local time.
  *
  * @package carkeek-events
@@ -37,123 +33,17 @@ class CarkeekEvents_Cron {
 	}
 
 	/**
-	 * Run both cron passes.
+	 * Run the cron job.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public function run() {
-		$this->pass_hide_expired();
 		$this->pass_expire_old();
 	}
 
 	// -----------------------------------------------------------------------
-	// Pass 1: Hide expired events
-	// -----------------------------------------------------------------------
-
-	/**
-	 * Hide events whose end datetime has passed the configured threshold.
-	 *
-	 * Uses ISO 8601 CHAR comparison on _carkeek_event_end so the full
-	 * datetime is considered in a single meta query without PHP-level filtering.
-	 *
-	 * @since 1.0.0
-	 * @return void
-	 */
-	private function pass_hide_expired() {
-		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
-		$behavior = $settings['expiry_behavior'] ?? 'end_of_day';
-
-		if ( 'never' === $behavior ) {
-			return;
-		}
-
-		// Determine the threshold ISO string based on behavior.
-		if ( 'end_of_day' === $behavior ) {
-			// Hide events whose end date is before today (at start of today = end of yesterday).
-			$threshold = current_time( 'Y-m-d' ) . 'T00:00:00';
-		} else {
-			// 'immediate' — hide as soon as end datetime has passed.
-			$threshold = current_time( 'Y-m-d\TH:i:s' );
-		}
-
-		// Configurable batch size to prevent memory exhaustion on large sites.
-		$batch_size = absint( apply_filters( 'carkeek_events_cron_batch_size', 200 ) );
-
-		$query = new WP_Query( array(
-			'post_type'      => 'carkeek_event',
-			'post_status'    => 'publish',
-			'posts_per_page' => $batch_size,
-			'fields'         => 'ids',
-			'no_found_rows'  => true,
-			'meta_query'     => array(
-				'relation' => 'AND',
-				// Must have a non-empty end datetime.
-				array(
-					'key'     => '_carkeek_event_end',
-					'compare' => 'EXISTS',
-				),
-				array(
-					'key'     => '_carkeek_event_end',
-					'value'   => '',
-					'compare' => '!=',
-				),
-				// End datetime is before the threshold.
-				array(
-					'key'     => '_carkeek_event_end',
-					'value'   => $threshold,
-					'compare' => '<',
-					'type'    => 'CHAR',
-				),
-				// Not already hidden.
-				array(
-					'relation' => 'OR',
-					array(
-						'key'     => '_carkeek_event_hidden',
-						'compare' => 'NOT EXISTS',
-					),
-					array(
-						'key'     => '_carkeek_event_hidden',
-						'value'   => '1',
-						'compare' => '!=',
-					),
-				),
-				// Skip events an editor has manually restored — respect their override.
-				array(
-					'relation' => 'OR',
-					array(
-						'key'     => '_carkeek_event_manually_restored',
-						'compare' => 'NOT EXISTS',
-					),
-					array(
-						'key'     => '_carkeek_event_manually_restored',
-						'value'   => '1',
-						'compare' => '!=',
-					),
-				),
-			),
-		) );
-
-		$has_threshold_filter = has_filter( 'carkeek_events_expiry_threshold' );
-
-		foreach ( $query->posts as $post_id ) {
-			// Only re-fetch meta if an add-on filter might change the threshold per post.
-			// Avoids N redundant DB queries when no filter is registered (the common case).
-			if ( $has_threshold_filter ) {
-				$end_iso             = get_post_meta( $post_id, '_carkeek_event_end', true );
-				$effective_threshold = apply_filters( 'carkeek_events_expiry_threshold', $threshold, $post_id );
-				if ( $end_iso >= $effective_threshold ) {
-					continue;
-				}
-			}
-
-			do_action( 'carkeek_events_before_hide', $post_id );
-			update_post_meta( $post_id, '_carkeek_event_hidden', '1' );
-		}
-	}
-
-	// -----------------------------------------------------------------------
-	// Pass 2: Expire old events (trash)
+	// Expire old events (trash)
 	// -----------------------------------------------------------------------
 
 	/**

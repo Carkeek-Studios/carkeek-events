@@ -38,11 +38,11 @@ class CarkeekEvents_Display {
 	 *                          or '' to rely purely on CSS.
 	 * @return string HTML string, or empty string if no start date is set.
 	 */
-	public static function get_date_range_html( $post_id, $separator = ', ' ) {
+	public static function get_date_range_html( $post_id, $separator = ', ', $date_time_label = '' ) {
 		$start = get_post_meta( $post_id, '_carkeek_event_start', true );
 		$end   = get_post_meta( $post_id, '_carkeek_event_end', true );
 
-		return self::format_date_range( $start, $end, $separator );
+		return self::format_date_range( $start, $end, $separator, $date_time_label );
 	}
 
 	/**
@@ -65,7 +65,7 @@ class CarkeekEvents_Display {
 	 * @param string $separator Separator between date and time spans. Default ', '.
 	 * @return string Formatted HTML string.
 	 */
-	public static function format_date_range( $start_iso, $end_iso = '', $separator = ', ' ) {
+	public static function format_date_range( $start_iso, $end_iso = '', $separator = ', ', $date_time_label = '' ) {
 		if ( ! $start_iso ) {
 			return '';
 		}
@@ -88,9 +88,11 @@ class CarkeekEvents_Display {
 		$end_ts   = ( $end_date && $end_date !== $start_date ) ? strtotime( $end_date ) : 0;
 		$same_day = ! $end_ts;
 
+		$label_html = $date_time_label ? '<div class="carkeek-event-label carkeek-event-date-time-label">' . esc_html( $date_time_label ) . '</div> ' : '';
+
 		$start_date_str = '<span class="carkeek-event-date">' . esc_html( date_i18n( $date_format, $start_ts ) ) . '</span>';
 
-		$output = $start_date_str;
+		$output = $label_html . $start_date_str;
 
 		if ( $start_time ) {
 			$start_time_ts  = strtotime( $start_date . ' ' . $start_time );
@@ -118,7 +120,7 @@ class CarkeekEvents_Display {
 			}
 		}
 
-		return apply_filters( 'carkeek_events_date_range', $output, $start_date, $start_time, $end_date, $end_time );
+		return apply_filters( 'carkeek_events_date_range', $output, $start_date, $start_time, $end_date, $end_time, $date_time_label );
 	}
 
 	// -----------------------------------------------------------------------
@@ -135,10 +137,10 @@ class CarkeekEvents_Display {
 	 * @param int $post_id Event post ID.
 	 * @return string HTML, or empty string if no location is set.
 	 */
-	public static function get_event_location_html( $post_id ) {
+	public static function get_event_location_html( $post_id, $location_label = '', $show_directions_link = true ) {
 		$location_id   = (int) get_post_meta( $post_id, '_carkeek_event_location_id', true );
 		$location_text = get_post_meta( $post_id, '_carkeek_event_location_text', true );
-		return self::get_location_html( $location_id, $location_text, $post_id );
+		return self::get_location_html( $location_id, $location_text, $post_id, $location_label, $show_directions_link );
 	}
 
 	/**
@@ -157,7 +159,7 @@ class CarkeekEvents_Display {
 	 * @param int    $post_id       Parent event post ID (passed to filter).
 	 * @return string HTML, or empty string if nothing to display.
 	 */
-	public static function get_location_html( $location_id, $location_text = '', $post_id = 0 ) {
+	public static function get_location_html( $location_id, $location_text = '', $post_id = 0, $location_label = '', $show_directions_link = true ) {
 		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
 		$mode     = ! empty( $settings['location_display'] ) ? $settings['location_display'] : 'link';
 
@@ -169,6 +171,9 @@ class CarkeekEvents_Display {
 				if ( 'link' === $mode ) {
 					$html = '<a href="' . esc_url( get_permalink( $location_id ) ) . '">' . esc_html( $loc->post_title ) . '</a>';
 				} else {
+					if ( ! $show_directions_link ) {
+						$mode = 'address'; // fallback to address-only if directions link is disabled.
+					}
 					$html = self::build_address_html( $location_id, $loc->post_title, $mode );
 				}
 			}
@@ -177,6 +182,7 @@ class CarkeekEvents_Display {
 		if ( ! $html && $location_text ) {
 			$html = esc_html( $location_text );
 		}
+		$html = $location_label && !empty( $html ) ? '<div class="carkeek-event-label carkeek-event-location-label">' . esc_html( $location_label ) . '</div> ' . $html : $html;
 
 		return apply_filters( 'carkeek_events_location_display', $html, $post_id );
 	}
@@ -204,20 +210,20 @@ class CarkeekEvents_Display {
 
 		$lines = array();
 		if ( $name ) {
-			$lines[] = '<strong>' . esc_html( $name ) . '</strong>';
+			$lines[] = '<div class="carkeek-event-sublabel carkeek-event-location-name">' . esc_html( $name ) . '</div>';
 		}
 		if ( $address ) {
-			$lines[] = esc_html( $address );
+			$lines[] = '<div class="carkeek-event-meta carkeek-event-location-address">' . esc_html( $address ) . '</div>';
 		}
 		$city_line = array_filter( array( $city, $state, $zip ) );
 		if ( $city_line ) {
-			$lines[] = esc_html( implode( ', ', $city_line ) );
+			$lines[] = '<div class="carkeek-event-meta carkeek-event-location-city">' . esc_html( implode( ', ', $city_line ) ) . '</div>';
 		}
 		if ( $country ) {
-			$lines[] = esc_html( $country );
+			$lines[] = '<div class="carkeek-event-meta carkeek-event-location-country">' . esc_html( $country ) . '</div>';
 		}
 
-		$html = implode( '<br>', $lines );
+		$html = implode( '', $lines );
 
 		if ( 'address_directions' === $mode ) {
 			$query_parts = array_filter( array( $address, $city, $state, $zip, $country ) );
@@ -229,9 +235,9 @@ class CarkeekEvents_Display {
 					),
 					'https://www.google.com/maps/dir/'
 				);
-				$html .= '<br><a href="' . esc_url( $maps_url ) . '" target="_blank" rel="noopener noreferrer">'
+				$html .= '<div class="carkeek-event-meta carkeek-event-location-directions"><a href="' . esc_url( $maps_url ) . '" target="_blank" rel="noopener noreferrer">'
 					. esc_html__( 'Get Directions', 'carkeek-events' )
-					. '</a>';
+					. '</a></div>';
 			}
 		}
 
@@ -289,10 +295,10 @@ class CarkeekEvents_Display {
 	 * @param int $post_id Event post ID.
 	 * @return string HTML, or empty string if no organizer is set.
 	 */
-	public static function get_event_organizer_html( $post_id ) {
+	public static function get_event_organizer_html( $post_id, $organizer_label = '' ) {
 		$organizer_id   = (int) get_post_meta( $post_id, '_carkeek_event_organizer_id', true );
 		$organizer_text = get_post_meta( $post_id, '_carkeek_event_organizer_text', true );
-		return self::get_organizer_html( $organizer_id, $organizer_text, $post_id );
+		return self::get_organizer_html( $organizer_id, $organizer_text, $post_id, $organizer_label );
 	}
 
 	/**
@@ -310,7 +316,7 @@ class CarkeekEvents_Display {
 	 * @param int    $post_id        Parent event post ID (passed to filter).
 	 * @return string HTML, or empty string if nothing to display.
 	 */
-	public static function get_organizer_html( $organizer_id, $organizer_text = '', $post_id = 0 ) {
+	public static function get_organizer_html( $organizer_id, $organizer_text = '', $post_id = 0, $organizer_label = '' ) {
 		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
 		$mode     = ! empty( $settings['organizer_display'] ) ? $settings['organizer_display'] : 'link';
 
@@ -329,6 +335,10 @@ class CarkeekEvents_Display {
 
 		if ( ! $html && $organizer_text ) {
 			$html = esc_html( $organizer_text );
+		}
+
+		if ( $organizer_label && !empty( $html ) ) {
+			$html = '<div class="carkeek-event-label carkeek-event-organizer-label">' . esc_html( $organizer_label ) . '</div> ' . $html;
 		}
 
 		return apply_filters( 'carkeek_events_organizer_display', $html, $post_id );
@@ -350,19 +360,19 @@ class CarkeekEvents_Display {
 		$lines = array();
 
 		if ( $name ) {
-			$lines[] = '<strong>' . esc_html( $name ) . '</strong>';
+			$lines[] = '<div class="carkeek-event-sublabel carkeek-event-organizer-name">' . esc_html( $name ) . '</div>';
 		}
 		if ( $email ) {
-			$lines[] = '<a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a>';
+			$lines[] = '<div class="carkeek-event-meta carkeek-event-organizer-email"><a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a></div>';
 		}
 		if ( $phone ) {
 			$clean_phone = preg_replace( '/[^0-9+]/', '', $phone );
-			$lines[]     = '<a href="tel:' . esc_attr( $clean_phone ) . '">' . esc_html( $phone ) . '</a>';
+			$lines[]     = '<div class="carkeek-event-meta carkeek-event-organizer-phone"><a href="tel:' . esc_attr( $clean_phone ) . '">' . esc_html( $phone ) . '</a></div>';
 		}
 		if ( $website ) {
-			$lines[] = '<a href="' . esc_url( $website ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $website ) . '</a>';
+			$lines[] = '<div class="carkeek-event-meta carkeek-event-organizer-website"><a href="' . esc_url( $website ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $website ) . '</a></div>';
 		}
 
-		return implode( '<br>', $lines );
+		return implode( '', $lines );
 	}
 }
