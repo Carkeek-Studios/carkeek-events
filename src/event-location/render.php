@@ -34,7 +34,7 @@ if ( ! $post_id ) {
 }
 
 $post = get_post( $post_id );
-if ( ! $post || 'carkeek_event' !== $post->post_type || 'publish' !== $post->post_status ) {
+if ( ! $post || 'carkeek_event' !== $post->post_type || 'trash' === $post->post_status ) {
 	return;
 }
 
@@ -45,7 +45,7 @@ if ( $location_id ) {
 	get_post_meta( $location_id );
 }
 
-$html = CarkeekEvents_Display::get_event_location_html( $post_id );
+$html = CarkeekEvents_Display::get_event_location_html( $post_id, $attributes['locationLabel'], $attributes['showDirectionsLink'] );
 if ( ! $html ) {
 	return;
 }

@@ -36,7 +36,7 @@ if ( ! $post_id ) {
 }
 
 $post = get_post( $post_id );
-if ( ! $post || 'carkeek_event' !== $post->post_type || 'publish' !== $post->post_status ) {
+if ( ! $post || 'carkeek_event' !== $post->post_type || 'trash' === $post->post_status ) {
 	return;
 }
 

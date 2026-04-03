@@ -3,6 +3,7 @@
   "apiVersion": 3,
   "name": "carkeek-events/event-organizer",
   "title": "Event Organizer",
+  "icon": "admin-users",
   "category": "widgets",
   "description": "Displays the organizer for a Carkeek Event.",
   "keywords": ["event", "organizer", "host", "carkeek"],
@@ -11,6 +12,12 @@
   "postTypes": ["carkeek_event"],
   "supports": {
     "html": false
+  },
+  "attributes": {
+    "organizerLabel": {
+      "type": "string",
+      "default": "Organizer:"
+    }
   },
   "editorScript": "file:./index.js",
   "render": "file:./render.php"

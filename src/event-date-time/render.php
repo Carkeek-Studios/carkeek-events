@@ -34,7 +34,7 @@ if ( ! $post_id ) {
 }
 
 $post = get_post( $post_id );
-if ( ! $post || 'carkeek_event' !== $post->post_type || 'publish' !== $post->post_status ) {
+if ( ! $post || 'carkeek_event' !== $post->post_type || 'trash' === $post->post_status ) {
 	return;
 }
 
@@ -42,7 +42,7 @@ if ( ! $post || 'carkeek_event' !== $post->post_type || 'publish' !== $post->pos
 // individual get_post_meta() calls in Display methods hit cache, not the DB.
 get_post_meta( $post_id );
 
-$html = CarkeekEvents_Display::get_date_range_html( $post_id );
+$html = CarkeekEvents_Display::get_date_range_html( $post_id, $attributes['dateTimeSeparator'], $attributes['dateTimeLabel'] );
 if ( ! $html ) {
 	return;
 }

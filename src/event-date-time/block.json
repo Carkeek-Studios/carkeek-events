@@ -3,6 +3,7 @@
   "apiVersion": 3,
   "name": "carkeek-events/event-date-time",
   "title": "Event Date & Time",
+  "icon": "calendar-alt",
   "category": "widgets",
   "description": "Displays the date and time for a Carkeek Event.",
   "keywords": ["event", "date", "time", "carkeek"],
@@ -11,6 +12,16 @@
   "postTypes": ["carkeek_event"],
   "supports": {
     "html": false
+  },
+  "attributes": {
+    "dateTimeLabel": {
+      "type": "string",
+      "default": "Date & Time:"
+    },
+    "dateTimeSeparator": {
+      "type": "string",
+      "default": "<br/>"
+    }
   },
   "editorScript": "file:./index.js",
   "render": "file:./render.php"
