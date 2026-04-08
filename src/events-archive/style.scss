@@ -26,12 +26,13 @@
 	}
 
 	&.is-list {
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
+		.carkeek-event-card {
+			display: flex;
+			flex-direction: column;
+			gap: 1.5rem;
 
-		@media(  min-width: 600px) {
-			.carkeek-event-card {
+			@media(  min-width: 600px) {
+
 				display: flex;
 				gap: 1.5rem;
 				&__content {
