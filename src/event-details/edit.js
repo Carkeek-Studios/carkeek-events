@@ -54,19 +54,21 @@ export default function Edit(props) {
 
 				</PanelBody>
 			</InspectorControls>
-			<p className="note">Details Placeholder set date and time at bottom of template</p>
-			<ServerSideRender
-				block="carkeek-events/event-details"
-				attributes={ attributes }
-				urlQueryArgs={ { postId } }
-				skipBlockSupportAttributes={ true }
-				EmptyResponsePlaceholder={ () => (
-					<Placeholder
-						label={ __( 'Event Details', 'carkeek-events' ) }
-						instructions={ __( 'No details set for this event, set details below.', 'carkeek-events' ) }
-					/>
-				) }
-			/>
+			<div className="event-details-preview">
+				<p className="note">Details Placeholder set date and time at bottom of template - open up Meta Boxes to edit.</p>
+				<ServerSideRender
+					block="carkeek-events/event-details"
+					attributes={ attributes }
+					urlQueryArgs={ { postId } }
+					skipBlockSupportAttributes={ true }
+					EmptyResponsePlaceholder={ () => (
+						<Placeholder
+							label={ __( 'Event Details', 'carkeek-events' ) }
+							instructions={ __( 'No details set for this event, set details below.', 'carkeek-events' ) }
+						/>
+					) }
+				/>
+			</div>
 		</div>
 	);
 }

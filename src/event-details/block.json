@@ -11,7 +11,8 @@
   "usesContext": ["postId", "postType"],
   "postTypes": ["carkeek_event"],
   "supports": {
-    "html": false
+    "html": false,
+	"align": ["wide", "full", "left", "right"]
   },
   "attributes": {
 		"dateTimeLabel": {
