@@ -25,7 +25,7 @@
 		}
 	}
 
-	&.is-list {
+	&__list {
 		.carkeek-event-card {
 			display: flex;
 			flex-direction: column;
@@ -33,10 +33,14 @@
 
 			@media(  min-width: 600px) {
 
-				display: flex;
+				flex-direction: row;
 				gap: 1.5rem;
 				&__content {
 					flex: 1 1 50%;
+					display: flex;
+					flex-direction: column;
+					gap: 0.5rem;
+					justify-content: center;
 				}
 				&__image-link {
 					flex: 1 1 50%;
@@ -73,3 +77,4 @@
 		color: inherit;
 	}
 }
+
