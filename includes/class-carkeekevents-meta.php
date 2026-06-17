@@ -104,9 +104,8 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// External website / registration URL. The classic meta box UI was removed in favour of
-		// the core Button block, but the meta key is retained so existing data is preserved and
-		// themes/plugins that read it via get_post_meta() continue to work.
+		// External website / registration URL. Drives the CTA button rendered by
+		// CarkeekEvents_Display::get_event_link_html().
 		register_meta( 'post', '_carkeek_event_website', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
@@ -115,8 +114,7 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
-		// CTA button label. Classic meta box UI removed (see _carkeek_event_website above);
-		// retained for back-compat with any theme/plugin reading this value directly.
+		// CTA button label. Defaults to "Sign Up" when blank (see get_event_link_html()).
 		register_meta( 'post', '_carkeek_event_button_label', array(
 			'object_subtype' => 'carkeek_event',
 			'type'           => 'string',
