@@ -123,6 +123,17 @@ class CarkeekEvents_Meta {
 			'auth_callback'  => $auth_callback,
 		) );
 
+		// Manual "hide from calendar" flag. When true, the event is excluded from
+		// the events archive block and site search but remains published and
+		// viewable by direct link. There is no auto-hide — this is set by an editor.
+		register_meta( 'post', '_carkeek_event_hidden', array(
+			'object_subtype' => 'carkeek_event',
+			'type'           => 'boolean',
+			'single'         => true,
+			'show_in_rest'   => true,
+			'auth_callback'  => $auth_callback,
+		) );
+
 		// ---------------------------------------------------------------
 		// carkeek_location meta fields
 		// ---------------------------------------------------------------

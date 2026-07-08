@@ -49,6 +49,22 @@ class CarkeekEvents_Meta_Boxes {
 			'high'
 		);
 
+		// "Hide from calendar" side box — only in the classic editor. In the block
+		// editor the "Event Options" document sidebar panel handles this instead,
+		// so registering here would produce a duplicate control.
+		$block_editor = ! function_exists( 'use_block_editor_for_post_type' )
+			|| use_block_editor_for_post_type( 'carkeek_event' );
+		if ( ! $block_editor ) {
+			add_meta_box(
+				'carkeek_event_options',
+				__( 'Event Options', 'carkeek-events' ),
+				array( $this, 'render_event_options_box' ),
+				'carkeek_event',
+				'side',
+				'default'
+			);
+		}
+
 		add_meta_box(
 			'carkeek_location_details',
 			__( 'Location Details', 'carkeek-events' ),
@@ -121,6 +137,11 @@ class CarkeekEvents_Meta_Boxes {
 				$organizer_id = 0;
 			}
 		}
+
+		// Field-in-use flags — hide input rows for field groups the site does not use.
+		$use_locations  = CarkeekEvents_Display::field_enabled( 'locations' );
+		$use_organizers = CarkeekEvents_Display::field_enabled( 'organizers' );
+		$use_button     = CarkeekEvents_Display::field_enabled( 'button' );
 		?>
 		<div class="carkeek-events-meta-box">
 
@@ -151,6 +172,7 @@ class CarkeekEvents_Meta_Boxes {
 
 				<?php do_action( 'carkeek_events_meta_box_after_dates', $post ); ?>
 
+			<?php if ( $use_locations ) : ?>
 			<hr />
 
 			<div class="carkeek-events-row">
@@ -161,7 +183,9 @@ class CarkeekEvents_Meta_Boxes {
 			</div>
 
 			<?php do_action( 'carkeek_events_meta_box_after_location', $post ); ?>
+			<?php endif; ?>
 
+			<?php if ( $use_organizers ) : ?>
 			<hr />
 
 			<div class="carkeek-events-row">
@@ -172,7 +196,9 @@ class CarkeekEvents_Meta_Boxes {
 			</div>
 
 			<?php do_action( 'carkeek_events_meta_box_after_organizer', $post ); ?>
+			<?php endif; ?>
 
+			<?php if ( $use_button ) : ?>
 			<hr />
 
 			<div class="carkeek-events-row">
@@ -196,8 +222,32 @@ class CarkeekEvents_Meta_Boxes {
 			</div>
 
 			<?php do_action( 'carkeek_events_meta_box_after_link', $post ); ?>
+			<?php endif; ?>
 
 		</div>
+		<?php
+	}
+
+	/**
+	 * Render the Event Options side meta box (classic editor only).
+	 *
+	 * @since 2.1.0
+	 * @param WP_Post $post Current post object.
+	 * @return void
+	 */
+	public function render_event_options_box( $post ) {
+		wp_nonce_field( 'carkeek_event_options_save', 'carkeek_event_options_nonce' );
+		$hidden = (bool) get_post_meta( $post->ID, '_carkeek_event_hidden', true );
+		?>
+		<p>
+			<label>
+				<input type="checkbox" name="carkeek_event_hidden" value="1" <?php checked( $hidden ); ?> />
+				<?php esc_html_e( 'Hide from calendar', 'carkeek-events' ); ?>
+			</label>
+		</p>
+		<p class="description">
+			<?php esc_html_e( 'Keeps the event published and reachable by direct link, but hides it from the events archive block and site search.', 'carkeek-events' ); ?>
+		</p>
 		<?php
 	}
 
@@ -388,34 +438,39 @@ class CarkeekEvents_Meta_Boxes {
 			delete_post_meta( $post_id, '_carkeek_event_end' );
 		}
 
-		// Location.
-		$location_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_location_mode'] ?? 'cpt' ) );
-		if ( 'new' === $location_mode ) {
-			$this->create_and_link_cpt( $post_id, 'location' );
-		} else {
-			$location_id = absint( $_POST['carkeek_event_location_id'] ?? 0 );
-			if ( $location_id ) {
-				$loc_post = get_post( $location_id );
-				if ( ! $loc_post || 'carkeek_location' !== $loc_post->post_type ) {
-					$location_id = 0;
+		// Location. Only process when the field group is in use AND its inputs were
+		// actually submitted — otherwise a hidden row would zero out a stored link.
+		if ( CarkeekEvents_Display::field_enabled( 'locations' ) && isset( $_POST['carkeek_event_location_mode'] ) ) {
+			$location_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_location_mode'] ) );
+			if ( 'new' === $location_mode ) {
+				$this->create_and_link_cpt( $post_id, 'location' );
+			} else {
+				$location_id = absint( $_POST['carkeek_event_location_id'] ?? 0 );
+				if ( $location_id ) {
+					$loc_post = get_post( $location_id );
+					if ( ! $loc_post || 'carkeek_location' !== $loc_post->post_type ) {
+						$location_id = 0;
+					}
 				}
+				update_post_meta( $post_id, '_carkeek_event_location_id', $location_id );
 			}
-			update_post_meta( $post_id, '_carkeek_event_location_id', $location_id );
 		}
 
-		// Organizer.
-		$organizer_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_organizer_mode'] ?? 'cpt' ) );
-		if ( 'new' === $organizer_mode ) {
-			$this->create_and_link_cpt( $post_id, 'organizer' );
-		} else {
-			$organizer_id = absint( $_POST['carkeek_event_organizer_id'] ?? 0 );
-			if ( $organizer_id ) {
-				$org_post = get_post( $organizer_id );
-				if ( ! $org_post || 'carkeek_organizer' !== $org_post->post_type ) {
-					$organizer_id = 0;
+		// Organizer. Guarded the same way as Location above.
+		if ( CarkeekEvents_Display::field_enabled( 'organizers' ) && isset( $_POST['carkeek_event_organizer_mode'] ) ) {
+			$organizer_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_organizer_mode'] ) );
+			if ( 'new' === $organizer_mode ) {
+				$this->create_and_link_cpt( $post_id, 'organizer' );
+			} else {
+				$organizer_id = absint( $_POST['carkeek_event_organizer_id'] ?? 0 );
+				if ( $organizer_id ) {
+					$org_post = get_post( $organizer_id );
+					if ( ! $org_post || 'carkeek_organizer' !== $org_post->post_type ) {
+						$organizer_id = 0;
+					}
 				}
+				update_post_meta( $post_id, '_carkeek_event_organizer_id', $organizer_id );
 			}
-			update_post_meta( $post_id, '_carkeek_event_organizer_id', $organizer_id );
 		}
 
 		// Event website URL.
@@ -435,6 +490,19 @@ class CarkeekEvents_Meta_Boxes {
 				update_post_meta( $post_id, '_carkeek_event_button_label', $label );
 			} else {
 				delete_post_meta( $post_id, '_carkeek_event_button_label' );
+			}
+		}
+
+		// Hide from calendar (classic editor side box). The block editor writes
+		// this meta via the REST API, where its own nonce is absent, so this
+		// branch is skipped and there is no double write.
+		if ( isset( $_POST['carkeek_event_options_nonce'] )
+			&& wp_verify_nonce( sanitize_key( $_POST['carkeek_event_options_nonce'] ), 'carkeek_event_options_save' )
+		) {
+			if ( ! empty( $_POST['carkeek_event_hidden'] ) ) {
+				update_post_meta( $post_id, '_carkeek_event_hidden', '1' );
+			} else {
+				delete_post_meta( $post_id, '_carkeek_event_hidden' );
 			}
 		}
 	}

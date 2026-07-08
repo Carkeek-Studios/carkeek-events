@@ -239,10 +239,11 @@ class CarkeekEvents_Block {
 			),
 		);
 
-		// Hidden event exclusion only applies to carkeek_event.
-		// if ( ! $config['is_alt'] ) {
-		// 	$args['meta_query'][] = CarkeekEvents_Query::hidden_exclusion_clause();
-		// }
+		// Exclude events flagged "Hide from calendar" unless the block opts in.
+		// Only applies to carkeek_event (alt post types have no such meta).
+		if ( ! $config['is_alt'] && empty( $attributes['showHidden'] ) ) {
+			$args['meta_query'][] = CarkeekEvents_Query::hidden_exclusion_clause();
+		}
 
 		if ( $offset > 0 ) {
 			$args['offset'] = $offset;
@@ -481,10 +482,14 @@ class CarkeekEvents_Block {
 				return $this->render_date_slot( $slot, $post_id, $attributes );
 
 			case 'location':
-				return $this->render_location_name( $post_id );
+				return CarkeekEvents_Display::field_enabled( 'locations' )
+					? $this->render_location_name( $post_id )
+					: '';
 
 			case 'organizer':
-				return $this->render_organizer_name( $post_id );
+				return CarkeekEvents_Display::field_enabled( 'organizers' )
+					? $this->render_organizer_name( $post_id )
+					: '';
 
 			case 'excerpt':
 				return $this->render_excerpt( $post_id, $attributes );

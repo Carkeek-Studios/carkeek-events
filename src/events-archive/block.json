@@ -19,6 +19,7 @@
     "showPagination":       { "type": "boolean", "default": false },
     "includePastEvents":    { "type": "boolean", "default": false },
     "onlyPastEvents":       { "type": "boolean", "default": false },
+    "showHidden":           { "type": "boolean", "default": false },
     "sortOrder":            { "type": "string",  "default": "ASC" },
     "filterByCategory":     { "type": "boolean", "default": false },
     "catFilterMode":        { "type": "string",  "default": "include" },

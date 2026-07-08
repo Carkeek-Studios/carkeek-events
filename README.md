@@ -1,6 +1,6 @@
 # Carkeek Events
 
-A lightweight, developer-friendly WordPress plugin for managing events. Registers Event, Location, and Organizer custom post types with classic meta boxes for structured data, a daily WP cron for hidden/expired state management, optional Google Maps geocoding, a built-in Events Archive Gutenberg block, and integration with the `carkeek-blocks` custom-archive block.
+A lightweight, developer-friendly WordPress plugin for managing events. Registers Event, Location, and Organizer custom post types with classic meta boxes for structured data, a daily WP cron for expiring past events, optional Google Maps geocoding, a built-in Events Archive Gutenberg block, and integration with the `carkeek-blocks` custom-archive block.
 
 The plugin provides **no opinionated front-end styles**. It ships default templates that you are expected to override in your theme.
 
@@ -40,13 +40,14 @@ The plugin provides **no opinionated front-end styles**. It ships default templa
 | Meta Key | Type | Notes |
 |---|---|---|
 | `_carkeek_event_start` | string | ISO 8601 local time: `YYYY-MM-DDTHH:MM:SS`. Time is `00:00:00` when no time is set. |
-| `_carkeek_event_end` | string | ISO 8601 local time. Empty for open-ended events (they will never be hidden or expired). |
+| `_carkeek_event_end` | string | ISO 8601 local time. Empty for open-ended events (they will never be expired). |
 | `_carkeek_event_location_id` | integer | Linked `carkeek_location` post ID. `0` if none. |
 | `_carkeek_event_location_text` | string | Free-text location fallback when no CPT is linked. |
 | `_carkeek_event_organizer_id` | integer | Linked `carkeek_organizer` post ID. `0` if none. |
 | `_carkeek_event_organizer_text` | string | Free-text organizer fallback when no CPT is linked. |
 | `_carkeek_event_website` | string | External registration or info URL. When set, templates render a CTA button. |
 | `_carkeek_event_button_label` | string | CTA button label. Defaults to "Sign Up" at render time if blank. |
+| `_carkeek_event_hidden` | boolean | Manual "Hide from calendar" flag. When set, the event is excluded from the Events Archive block and site search but stays published and viewable by direct link. Set via the editor's **Event Options** panel (block editor) or side box (classic). Never set automatically. |
 ### carkeek_location
 
 | Meta Key | Type | Notes |
@@ -174,10 +175,15 @@ CarkeekEvents_Display::get_organizer_html( $organizer_id, $organizer_text, $post
 
 ### Single Event Page
 
-Template hierarchy (first match wins):
+The plugin ships **two** single-event templates and picks one based on the **Editor** setting (see Settings Reference):
 
-1. **Theme override:** `{your-theme}/carkeek-events/single-carkeek_event.php`
-2. **Plugin default:** `carkeek-events/templates/single-carkeek_event.php`
+- **Block editor on (default):** `single-carkeek_event-blocks.php` — renders the title and `the_content()` only, so the `event-details` / `event-date-time` / etc. blocks control the layout. If no `carkeek-events/event-details` block is present, it falls back to rendering the PHP meta header so dates/location/organizer/button are never lost.
+- **Classic editor (Editor setting enabled):** `single-carkeek_event.php` — renders a PHP meta header (dates, location, organizer, CTA button) above the content.
+
+Template hierarchy for the selected file (first match wins):
+
+1. **Theme override:** `{your-theme}/carkeek-events/{selected-file}.php`
+2. **Plugin default:** `carkeek-events/templates/{selected-file}.php`
 3. **Disabled:** If you set **Single Event Template** to "Use theme template" in **Events > Settings**, the plugin template is bypassed entirely and WordPress falls back to `single.php` or `singular.php`.
 
 **Filter to override the template path:** `carkeek_events_single_template( $template_path )`
@@ -329,11 +335,15 @@ All settings are stored as a single array under the option key `carkeek_events_s
 | `content_expiry_days` | `365` | Integer, days. Events are set to `private` this many days after their end date. Minimum 1. |
 | `disable_wp_archive` | `1` | `1` = WP CPT archive disabled (use a custom Page + archive block). `0` = enabled. |
 | `archive_slug` | `events` | Slug for the WP CPT archive when enabled. Rewrite rules flush automatically on save. |
+| `disable_block_editor` | `0` | `1` = use the Classic editor for Events, Locations, and Organizers (also selects the classic single template). `0` = block editor (default; selects the block single template). |
 | `use_plugin_template` | `1` | `1` = use plugin template, `0` = use theme template |
 | `date_format` | `''` | PHP date format string. Falls back to WP site setting. |
 | `time_format` | `''` | PHP date format string. Falls back to WP site setting. |
 | `location_display` | `link` | `link` \| `address` \| `address_directions` |
 | `organizer_display` | `link` | `link` \| `info` |
+| `use_locations` | `1` | `1` = Location field is in use. `0` = hide the Location input in the editor and suppress location output on the front end and in the archive block. |
+| `use_organizers` | `1` | `1` = Organizer field is in use. `0` = hide the Organizer input and suppress organizer output. |
+| `use_button` | `1` | `1` = Registration button (event website URL + button label) is in use. `0` = hide those inputs and suppress the CTA button. Existing data is preserved. |
 | `google_maps_api_key` | `''` | Stored server-side only. Never exposed to the browser. |
 
 ---
@@ -379,6 +389,7 @@ The WordPress archive template is hard to customise without a page builder. The 
 | Display Excerpt | off | |
 | Excerpt Length | 25 words | |
 | Show Pagination | off | |
+| Show Hidden Events | off | Include events flagged "Hide from calendar" in this block. Off by default. |
 | Hide Block When Empty | on | Returns empty string if no events match |
 | Empty State Message | — | Shown when Hide When Empty is off |
 

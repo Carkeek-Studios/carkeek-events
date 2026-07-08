@@ -19,6 +19,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CarkeekEvents_Display {
 
 	// -----------------------------------------------------------------------
+	// Field-in-use settings
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Whether a site-level field group is enabled.
+	 *
+	 * Reads the "Fields in Use" settings. Each field defaults to enabled when
+	 * the setting key is absent, so existing installs keep every field.
+	 *
+	 * @since 2.1.0
+	 * @param string $field One of 'locations', 'organizers', 'button'.
+	 * @return bool True when the field group is in use.
+	 */
+	public static function field_enabled( $field ) {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$key      = 'use_' . $field;
+		// Absent key => enabled (backward-compatible default).
+		return ! isset( $settings[ $key ] ) || '0' !== $settings[ $key ];
+	}
+
+	// -----------------------------------------------------------------------
 	// Date / time formatting
 	// -----------------------------------------------------------------------
 
@@ -138,6 +159,9 @@ class CarkeekEvents_Display {
 	 * @return string HTML, or empty string if no location is set.
 	 */
 	public static function get_event_location_html( $post_id, $location_label = '', $show_directions_link = true ) {
+		if ( ! self::field_enabled( 'locations' ) ) {
+			return '';
+		}
 		$location_id   = (int) get_post_meta( $post_id, '_carkeek_event_location_id', true );
 		$location_text = get_post_meta( $post_id, '_carkeek_event_location_text', true );
 		return self::get_location_html( $location_id, $location_text, $post_id, $location_label, $show_directions_link );
@@ -263,6 +287,9 @@ class CarkeekEvents_Display {
 	 * @return string HTML, or empty string if no website URL is set.
 	 */
 	public static function get_event_link_html( $post_id ) {
+		if ( ! self::field_enabled( 'button' ) ) {
+			return '';
+		}
 		$url   = get_post_meta( $post_id, '_carkeek_event_website', true );
 		$label = get_post_meta( $post_id, '_carkeek_event_button_label', true );
 
@@ -296,6 +323,9 @@ class CarkeekEvents_Display {
 	 * @return string HTML, or empty string if no organizer is set.
 	 */
 	public static function get_event_organizer_html( $post_id, $organizer_label = '' ) {
+		if ( ! self::field_enabled( 'organizers' ) ) {
+			return '';
+		}
 		$organizer_id   = (int) get_post_meta( $post_id, '_carkeek_event_organizer_id', true );
 		$organizer_text = get_post_meta( $post_id, '_carkeek_event_organizer_text', true );
 		return self::get_organizer_html( $organizer_id, $organizer_text, $post_id, $organizer_label );

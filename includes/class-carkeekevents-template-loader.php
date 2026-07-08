@@ -110,14 +110,20 @@ function carkeek_events_single_template( $template ) {
 		return $custom;
 	}
 
+	// Pick the block or classic template based on the editor setting.
+	// Block editor on (default) => block template; classic editor => classic template.
+	// Read the setting directly — use_block_editor_for_post_type() is admin-only.
+	$use_blocks = empty( $settings['disable_block_editor'] );
+	$file       = $use_blocks ? 'single-carkeek_event-blocks.php' : 'single-carkeek_event.php';
+
 	// Check theme first.
-	$theme_template = locate_template( array( 'carkeek-events/single-carkeek_event.php' ) );
+	$theme_template = locate_template( array( 'carkeek-events/' . $file ) );
 	if ( $theme_template ) {
 		return $theme_template;
 	}
 
 	// Fall back to plugin template.
-	$plugin_template = CARKEEKEVENTS_PLUGIN_DIR . 'templates/single-carkeek_event.php';
+	$plugin_template = CARKEEKEVENTS_PLUGIN_DIR . 'templates/' . $file;
 	if ( file_exists( $plugin_template ) ) {
 		return $plugin_template;
 	}
