@@ -309,6 +309,70 @@ class CarkeekEvents_Display {
 	}
 
 	// -----------------------------------------------------------------------
+	// Add to Calendar
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Get the "Add to Calendar" control HTML for an event.
+	 *
+	 * Convenience wrapper mirroring the other display helpers so templates keep a
+	 * single entry point. Returns empty string when the feature is disabled or the
+	 * event has no start date.
+	 *
+	 * @since 2.2.0
+	 * @param int   $post_id Event post ID.
+	 * @param array $args    Optional labels: buttonLabel, googleLabel, icalLabel.
+	 * @return string HTML, or empty string.
+	 */
+	public static function get_add_to_calendar_html( $post_id, $args = array() ) {
+		// Suppress when disabled, or for password-protected events (the .ics endpoint
+		// 404s for those, and the Google link would otherwise embed the description).
+		if ( ! self::field_enabled( 'add_to_calendar' ) || post_password_required( $post_id ) ) {
+			return '';
+		}
+		return CarkeekEvents_Calendar::render_button( $post_id, $args );
+	}
+
+	/**
+	 * Build a plain-text location string for calendar links (no HTML, no directions).
+	 *
+	 * Uses the linked carkeek_location record (name + address) when present, else the
+	 * free-text fallback. Suppressed when the Locations field group is disabled.
+	 *
+	 * @since 2.2.0
+	 * @param int $post_id Event post ID.
+	 * @return string Plain text, or empty string.
+	 */
+	public static function get_location_string( $post_id ) {
+		if ( ! self::field_enabled( 'locations' ) ) {
+			return '';
+		}
+
+		$location_id = (int) get_post_meta( $post_id, '_carkeek_event_location_id', true );
+
+		if ( $location_id ) {
+			$loc = get_post( $location_id );
+			if ( $loc && 'publish' === $loc->post_status ) {
+				$parts = array(
+					$loc->post_title,
+					get_post_meta( $location_id, '_carkeek_location_address', true ),
+					get_post_meta( $location_id, '_carkeek_location_city', true ),
+					get_post_meta( $location_id, '_carkeek_location_state', true ),
+					get_post_meta( $location_id, '_carkeek_location_zip', true ),
+					get_post_meta( $location_id, '_carkeek_location_country', true ),
+				);
+				$parts = array_filter( array_map( 'trim', $parts ) );
+				if ( $parts ) {
+					return wp_strip_all_tags( implode( ', ', $parts ) );
+				}
+			}
+		}
+
+		$location_text = get_post_meta( $post_id, '_carkeek_event_location_text', true );
+		return $location_text ? wp_strip_all_tags( $location_text ) : '';
+	}
+
+	// -----------------------------------------------------------------------
 	// Organizer display
 	// -----------------------------------------------------------------------
 
