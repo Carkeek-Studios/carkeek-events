@@ -16,10 +16,11 @@ while ( have_posts() ) :
 
 	$post_id    = get_the_ID();
 
-	$date_range = CarkeekEvents_Display::get_date_range_html( $post_id );
-	$location   = CarkeekEvents_Display::get_event_location_html( $post_id );
-	$organizer  = CarkeekEvents_Display::get_event_organizer_html( $post_id );
-	$event_link = CarkeekEvents_Display::get_event_link_html( $post_id );
+	$date_range      = CarkeekEvents_Display::get_date_range_html( $post_id );
+	$location        = CarkeekEvents_Display::get_event_location_html( $post_id );
+	$organizer       = CarkeekEvents_Display::get_event_organizer_html( $post_id );
+	$event_link      = CarkeekEvents_Display::get_event_link_html( $post_id );
+	$add_to_calendar = CarkeekEvents_Display::get_add_to_calendar_html( $post_id );
 	?>
 
 	<article id="post-<?php the_ID(); ?>" <?php post_class( 'carkeek-event' ); ?>>
@@ -55,6 +56,12 @@ while ( have_posts() ) :
 				<?php if ( $event_link ) : ?>
 					<div class="carkeek-event__link">
 						<?php echo wp_kses_post( $event_link ); ?>
+					</div>
+				<?php endif; ?>
+
+				<?php if ( $add_to_calendar ) : ?>
+					<div class="carkeek-event__add-to-calendar">
+						<?php echo wp_kses_post( $add_to_calendar ); ?>
 					</div>
 				<?php endif; ?>
 			</div>

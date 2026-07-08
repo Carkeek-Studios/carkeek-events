@@ -1,0 +1,32 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "carkeek-events/add-to-calendar",
+  "title": "Add to Calendar",
+  "icon": "calendar-alt",
+  "category": "widgets",
+  "description": "Add to Calendar control (Google Calendar link and downloadable .ics) for a Carkeek Event.",
+  "keywords": ["event", "calendar", "google", "ical", "carkeek"],
+  "textdomain": "carkeek-events",
+  "usesContext": ["postId", "postType"],
+  "postTypes": ["carkeek_event"],
+  "supports": {
+    "html": false
+  },
+  "attributes": {
+    "buttonLabel": {
+      "type": "string",
+      "default": "Add to Calendar"
+    },
+    "googleLabel": {
+      "type": "string",
+      "default": "Google Calendar"
+    },
+    "icalLabel": {
+      "type": "string",
+      "default": "Download .ics"
+    }
+  },
+  "editorScript": "file:./index.js",
+  "render": "file:./render.php"
+}
