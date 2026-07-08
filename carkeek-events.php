@@ -4,7 +4,7 @@
  * Description:       Lightweight, developer-friendly event management. Registers Event, Location, and Organizer custom post types with meta boxes, expiry cron, and optional Google Maps geocoding. Integrates with carkeek-blocks custom-archive block.
  * Requires at least: 6.4
  * Requires PHP:      8.1
- * Version:           2.0.18
+ * Version:           2.1.0
  * Author:            Carkeek Studios
  * Author URI:        https://carkeekstudios.com
  * License:           GPL-2.0-or-later
@@ -133,6 +133,7 @@ if ( ! class_exists( 'CarkeekEvents' ) ) {
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-meta-boxes.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-settings.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-admin.php';
+			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-editor.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-cron.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-query.php';
 			require_once CARKEEKEVENTS_PLUGIN_DIR . 'includes/class-carkeekevents-geocode.php';

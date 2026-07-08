@@ -29,11 +29,51 @@ class CarkeekEvents_Query {
 		$instance = new self();
 		add_action( 'pre_get_posts', array( $instance, 'apply_default_sort' ) );
 
+		// Exclude "Hide from calendar" events from front-end search.
+		add_action( 'pre_get_posts', array( $instance, 'exclude_hidden_from_search' ) );
+
 		// Integrate with carkeek-blocks custom-archive block (only if filter exists).
 		add_filter( 'carkeek_block_custom_post_layout__query_args', array( $instance, 'inject_event_meta_query' ), 10, 2 );
 
 		// Handle sortable start_date column in admin.
 		add_action( 'pre_get_posts', array( $instance, 'handle_admin_sort' ) );
+	}
+
+	/**
+	 * A meta_query clause that matches events NOT flagged "Hide from calendar".
+	 *
+	 * Shape is OR( key missing, key !== '1' ) so posts without the meta — and any
+	 * non-event post types on a mixed query (e.g. search) — always pass.
+	 *
+	 * @since 2.1.0
+	 * @return array meta_query sub-clause.
+	 */
+	public static function hidden_exclusion_clause() {
+		return array(
+			'relation' => 'OR',
+			array( 'key' => '_carkeek_event_hidden', 'compare' => 'NOT EXISTS' ),
+			array( 'key' => '_carkeek_event_hidden', 'value' => '1', 'compare' => '!=' ),
+		);
+	}
+
+	/**
+	 * Exclude hidden events from the front-end search results main query.
+	 *
+	 * Safe on a mixed-post-type search: the OR/NOT-EXISTS clause lets every
+	 * non-event result through.
+	 *
+	 * @since 2.1.0
+	 * @param WP_Query $query The current WP_Query instance.
+	 * @return void
+	 */
+	public function exclude_hidden_from_search( $query ) {
+		if ( is_admin() || ! $query->is_main_query() || ! $query->is_search() ) {
+			return;
+		}
+
+		$meta_query   = $query->get( 'meta_query' ) ?: array();
+		$meta_query[] = self::hidden_exclusion_clause();
+		$query->set( 'meta_query', $meta_query );
 	}
 
 	/**

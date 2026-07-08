@@ -44,6 +44,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		showPagination,
 		includePastEvents,
 		onlyPastEvents,
+		showHidden,
 		sortOrder,
 		filterByCategory,
 		catFilterMode,
@@ -462,6 +463,14 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 
 			{ /* Behavior Panel */ }
 			<PanelBody title={ __( 'Behavior', 'carkeek-events' ) } initialOpen={ false }>
+					<ToggleControl
+						label={ __( 'Show Hidden Events', 'carkeek-events' ) }
+						help={ __( 'Include events marked "Hide from calendar" in this block.', 'carkeek-events' ) }
+						checked={ showHidden }
+						onChange={ ( value ) => setAttributes( { showHidden: value } ) }
+						__nextHasNoMarginBottom
+					/>
+					<hr style={ { margin: '12px 0' } } />
 				<ToggleControl
 					label={ __( 'Hide Block When Empty', 'carkeek-events' ) }
 					help={ __( 'If no events match, the block outputs nothing.', 'carkeek-events' ) }

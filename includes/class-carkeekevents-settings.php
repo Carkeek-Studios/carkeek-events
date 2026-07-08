@@ -9,6 +9,10 @@
  *   content_expiry_days  => 365
  *   disable_wp_archive   => '1'
  *   archive_slug         => 'events'
+ *   disable_block_editor => '0'
+ *   use_locations        => '1'
+ *   use_organizers       => '1'
+ *   use_button           => '1'
  *   google_maps_api_key  => ''
  *
  * @package carkeek-events
@@ -99,6 +103,14 @@ class CarkeekEvents_Settings {
 		);
 
 		add_settings_field(
+			'disable_block_editor',
+			__( 'Editor', 'carkeek-events' ),
+			array( $this, 'disable_block_editor_callback' ),
+			'carkeek-events',
+			'carkeek_events_display_section'
+		);
+
+		add_settings_field(
 			'use_plugin_template',
 			__( 'Single Event Template', 'carkeek-events' ),
 			array( $this, 'use_plugin_template_callback' ),
@@ -138,7 +150,23 @@ class CarkeekEvents_Settings {
 			'carkeek_events_display_section'
 		);
 
-		// Section 3: Maps Integration.
+		// Section 4: Fields in Use.
+		add_settings_section(
+			'carkeek_events_fields_section',
+			__( 'Fields in Use', 'carkeek-events' ),
+			array( $this, 'fields_section_description' ),
+			'carkeek-events'
+		);
+
+		add_settings_field(
+			'fields_in_use',
+			__( 'Event Fields', 'carkeek-events' ),
+			array( $this, 'fields_in_use_callback' ),
+			'carkeek-events',
+			'carkeek_events_fields_section'
+		);
+
+		// Section 5: Maps Integration.
 		add_settings_section(
 			'carkeek_events_maps_section',
 			__( 'Maps Integration', 'carkeek-events' ),
@@ -202,6 +230,27 @@ class CarkeekEvents_Settings {
 				<?php esc_html_e( 'Use theme template — WordPress falls back to the theme\'s single.php or singular.php', 'carkeek-events' ); ?>
 			</label>
 		</fieldset>
+		<?php
+	}
+
+	/**
+	 * Block editor toggle field callback.
+	 *
+	 * @since 2.1.0
+	 * @return void
+	 */
+	public function disable_block_editor_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['disable_block_editor'] ?? '0';
+		?>
+		<label>
+			<input type="checkbox"
+				name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[disable_block_editor]"
+				value="1"
+				<?php checked( $value, '1' ); ?> />
+			<?php esc_html_e( 'Use the Classic editor for Events, Locations, and Organizers (disables the block editor for these post types).', 'carkeek-events' ); ?>
+		</label>
+		<p class="description"><?php esc_html_e( 'When enabled, single events load the classic PHP template. When disabled, single events load the block template so event blocks control the layout.', 'carkeek-events' ); ?></p>
 		<?php
 	}
 
@@ -315,6 +364,45 @@ class CarkeekEvents_Settings {
 						name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[organizer_display]"
 						value="<?php echo esc_attr( $key ); ?>"
 						<?php checked( $value, $key ); ?> />
+					<?php echo esc_html( $label ); ?>
+				</label>
+			<?php endforeach; ?>
+		</fieldset>
+		<?php
+	}
+
+	/**
+	 * Fields in Use section description.
+	 *
+	 * @since 2.1.0
+	 * @return void
+	 */
+	public function fields_section_description() {
+		echo '<p class="description">' . esc_html__( 'Turn off event fields your site does not use. Disabled fields are hidden from the event editor and are not rendered on the front end or in the events archive block. Existing data is preserved and reappears if the field is re-enabled.', 'carkeek-events' ) . '</p>';
+	}
+
+	/**
+	 * Fields in Use checkboxes callback.
+	 *
+	 * @since 2.1.0
+	 * @return void
+	 */
+	public function fields_in_use_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$fields   = array(
+			'use_locations'  => __( 'Locations — link a location record or address to each event', 'carkeek-events' ),
+			'use_organizers' => __( 'Organizers — link an organizer record to each event', 'carkeek-events' ),
+			'use_button'     => __( 'Registration button — event website / registration URL and button label', 'carkeek-events' ),
+		);
+		?>
+		<fieldset>
+			<?php foreach ( $fields as $key => $label ) : ?>
+				<?php $value = $settings[ $key ] ?? '1'; ?>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox"
+						name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[<?php echo esc_attr( $key ); ?>]"
+						value="1"
+						<?php checked( $value, '1' ); ?> />
 					<?php echo esc_html( $label ); ?>
 				</label>
 			<?php endforeach; ?>
@@ -456,9 +544,10 @@ class CarkeekEvents_Settings {
 		$sanitized['archive_slug']       = sanitize_title( $input['archive_slug'] ?? 'events' ) ?: 'events';
 
 		// Display.
-		$sanitized['use_plugin_template'] = ( '0' === ( $input['use_plugin_template'] ?? '1' ) ) ? '0' : '1';
-		$sanitized['date_format']         = sanitize_text_field( $input['date_format'] ?? '' );
-		$sanitized['time_format']         = sanitize_text_field( $input['time_format'] ?? '' );
+		$sanitized['disable_block_editor'] = ! empty( $input['disable_block_editor'] ) ? '1' : '0';
+		$sanitized['use_plugin_template']  = ( '0' === ( $input['use_plugin_template'] ?? '1' ) ) ? '0' : '1';
+		$sanitized['date_format']          = sanitize_text_field( $input['date_format'] ?? '' );
+		$sanitized['time_format']          = sanitize_text_field( $input['time_format'] ?? '' );
 
 		$allowed_location = array( 'link', 'address', 'address_directions' );
 		$sanitized['location_display'] = in_array( $input['location_display'] ?? '', $allowed_location, true )
@@ -469,6 +558,12 @@ class CarkeekEvents_Settings {
 		$sanitized['organizer_display'] = in_array( $input['organizer_display'] ?? '', $allowed_organizer, true )
 			? $input['organizer_display']
 			: 'link';
+
+		// Fields in Use. All three checkboxes always render on the settings form,
+		// so an absent key means the box was unchecked.
+		$sanitized['use_locations']  = ! empty( $input['use_locations'] ) ? '1' : '0';
+		$sanitized['use_organizers'] = ! empty( $input['use_organizers'] ) ? '1' : '0';
+		$sanitized['use_button']     = ! empty( $input['use_button'] ) ? '1' : '0';
 
 		// Maps.
 		$sanitized['google_maps_api_key'] = sanitize_text_field( $input['google_maps_api_key'] ?? '' );
