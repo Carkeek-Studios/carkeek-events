@@ -1,0 +1,62 @@
+/**
+ * Carkeek Events — front-end styles.
+ *
+ * Loaded only when a front-end control that needs it renders (currently the
+ * Add to Calendar disclosure). Enqueued lazily by CarkeekEvents_Calendar::render_button().
+ */
+
+.carkeek-add-to-calendar {
+	position: relative;
+	display: inline-block;
+}
+
+.carkeek-add-to-calendar__toggle {
+	cursor: pointer;
+	list-style: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4em;
+}
+
+/* Hide the native disclosure triangle. */
+.carkeek-add-to-calendar__toggle::-webkit-details-marker {
+	display: none;
+}
+.carkeek-add-to-calendar__toggle::marker {
+	content: "";
+}
+
+.carkeek-add-to-calendar__toggle::after {
+	content: "\25BE"; /* ▾ */
+	font-size: 0.8em;
+	line-height: 1;
+}
+
+.carkeek-add-to-calendar[open] .carkeek-add-to-calendar__toggle::after {
+	content: "\25B4"; /* ▴ */
+}
+
+.carkeek-add-to-calendar__menu {
+	position: absolute;
+	z-index: 10;
+	min-width: 12em;
+	margin-top: 0.25em;
+	padding: 0.25em 0;
+	background: #fff;
+	border: 1px solid rgba(0, 0, 0, 0.15);
+	border-radius: 4px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.carkeek-add-to-calendar__item {
+	display: block;
+	padding: 0.5em 1em;
+	text-decoration: none;
+	color: inherit;
+	white-space: nowrap;
+}
+
+.carkeek-add-to-calendar__item:hover,
+.carkeek-add-to-calendar__item:focus {
+	background: rgba(0, 0, 0, 0.06);
+}

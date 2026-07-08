@@ -170,6 +170,21 @@ if ( CarkeekEvents_Display::is_past_event() ) {
 - Uses the site timezone (`wp_timezone()`), so it is DST-correct.
 
 **Filter:** `carkeek_events_is_past_event( $is_past, $post_id )`
+### `get_add_to_calendar_html( $post_id, $args = array() )`
+
+Returns an "Add to Calendar" disclosure control (a native `<details>` element) with a **Google Calendar** link and a **Download .ics** link. Returns empty string when the event has no start date, when the **Add to Calendar** field is disabled, or for password-protected events. Optional `$args`: `buttonLabel`, `googleLabel`, `icalLabel`.
+
+```php
+echo CarkeekEvents_Display::get_add_to_calendar_html( get_the_ID() );
+```
+
+See [Add to Calendar](#add-to-calendar) for the block and the `.ics` endpoint.
+
+---
+
+### `get_location_string( $post_id )`
+
+Returns a **plain-text** location string (name + address, no HTML/links) for use in calendar links. Empty when Locations are disabled or none is set.
 
 ---
 
@@ -363,6 +378,7 @@ All settings are stored as a single array under the option key `carkeek_events_s
 | `use_locations` | `1` | `1` = Location field is in use. `0` = hide the Location input in the editor and suppress location output on the front end and in the archive block. |
 | `use_organizers` | `1` | `1` = Organizer field is in use. `0` = hide the Organizer input and suppress organizer output. |
 | `use_button` | `1` | `1` = Registration button (event website URL + button label) is in use. `0` = hide those inputs and suppress the CTA button. Existing data is preserved. |
+| `use_add_to_calendar` | `1` | `1` = Add to Calendar control is available (block, template helper, and `.ics` endpoint). `0` = suppress the control and 404 the `.ics` endpoint. |
 | `google_maps_api_key` | `''` | Stored server-side only. Never exposed to the browser. |
 
 ---
@@ -424,6 +440,24 @@ npm run build
 ```
 
 The compiled assets in `build/events-archive/` are committed to the repo so the plugin works without a build step on deployment.
+
+---
+
+## Add to Calendar
+
+A single-event **"Add to Calendar"** control offering a **Google Calendar** link and a downloadable **`.ics`** (which also imports into Apple Calendar and Outlook desktop). Gated by the `use_add_to_calendar` setting (default on).
+
+Three ways to use it:
+
+1. **Template helper** — `CarkeekEvents_Display::get_add_to_calendar_html( $post_id )`. Rendered automatically in the plugin's single-event templates.
+2. **Block** — `carkeek-events/add-to-calendar`, insertable on Event posts. Configurable labels for the button and the two links.
+3. **`.ics` endpoint** — append `?carkeek_ical=1` to any event permalink to stream a `text/calendar` download. Implemented as a **query var** (no rewrite rule, so no rewrite flush is ever needed). Returns 404 when the feature is disabled or the event is password-protected.
+
+Details:
+- **Timezones:** timed events are emitted in UTC (`…THHMMSSZ`), all-day events use `VALUE=DATE` with an exclusive `DTEND`, both derived from the site timezone (`wp_timezone()`), so DST is handled correctly.
+- **All-day** = an event whose start has no time component (`00:00:00`).
+- **Calendar entry body** = the event excerpt (or trimmed content) plus a "More info:" link back to the event.
+- Hidden events (see the visibility feature) still serve their `.ics` — the endpoint lives on the public permalink.
 
 ---
 

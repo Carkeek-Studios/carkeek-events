@@ -37,6 +37,7 @@ class CarkeekEvents_Event_Blocks {
 		'event-location',
 		'event-organizer',
 		'event-details',
+		'add-to-calendar',
 	);
 
 	/**

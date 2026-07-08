@@ -13,6 +13,7 @@
  *   use_locations        => '1'
  *   use_organizers       => '1'
  *   use_button           => '1'
+ *   use_add_to_calendar  => '1'
  *   google_maps_api_key  => ''
  *
  * @package carkeek-events
@@ -393,6 +394,7 @@ class CarkeekEvents_Settings {
 			'use_locations'  => __( 'Locations — link a location record or address to each event', 'carkeek-events' ),
 			'use_organizers' => __( 'Organizers — link an organizer record to each event', 'carkeek-events' ),
 			'use_button'     => __( 'Registration button — event website / registration URL and button label', 'carkeek-events' ),
+			'use_add_to_calendar' => __( 'Add to Calendar — Google Calendar link and downloadable .ics on single events', 'carkeek-events' ),
 		);
 		?>
 		<fieldset>
@@ -561,9 +563,10 @@ class CarkeekEvents_Settings {
 
 		// Fields in Use. All three checkboxes always render on the settings form,
 		// so an absent key means the box was unchecked.
-		$sanitized['use_locations']  = ! empty( $input['use_locations'] ) ? '1' : '0';
-		$sanitized['use_organizers'] = ! empty( $input['use_organizers'] ) ? '1' : '0';
-		$sanitized['use_button']     = ! empty( $input['use_button'] ) ? '1' : '0';
+		$sanitized['use_locations']       = ! empty( $input['use_locations'] ) ? '1' : '0';
+		$sanitized['use_organizers']      = ! empty( $input['use_organizers'] ) ? '1' : '0';
+		$sanitized['use_button']          = ! empty( $input['use_button'] ) ? '1' : '0';
+		$sanitized['use_add_to_calendar'] = ! empty( $input['use_add_to_calendar'] ) ? '1' : '0';
 
 		// Maps.
 		$sanitized['google_maps_api_key'] = sanitize_text_field( $input['google_maps_api_key'] ?? '' );
