@@ -117,6 +117,31 @@ Date and time formats respect the **Date Format** and **Time Format** settings u
 
 ---
 
+### Individual date/time getters
+
+When you need to place the start/end date and time in separate markup, use the individual getters. Each returns a plain formatted string (escape at output with `esc_html()`), or empty string when that component is absent.
+
+```php
+CarkeekEvents_Display::get_start_date( $post_id, $format = '' );
+CarkeekEvents_Display::get_end_date( $post_id, $format = '' );
+CarkeekEvents_Display::get_start_time( $post_id, $format = '' );  // '' for all-day events
+CarkeekEvents_Display::get_end_time( $post_id, $format = '' );
+```
+
+- `$format` is an optional PHP date/time format override. When omitted, dates use the **Date Format** setting and times use the **Time Format** setting (falling back to the WordPress site settings) — the same formats as `get_date_range_html()`.
+- Time getters return `''` for all-day events (a start/end stored with no time component).
+
+```php
+// Example: custom layout
+printf(
+	'<time class="starts">%s at %s</time>',
+	esc_html( CarkeekEvents_Display::get_start_date( $post_id ) ),
+	esc_html( CarkeekEvents_Display::get_start_time( $post_id ) )
+);
+```
+
+---
+
 ### `get_event_location_html( $post_id )`
 
 Returns the location display HTML per the **Location Display** setting in **Events > Settings**:
