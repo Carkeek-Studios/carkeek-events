@@ -27,14 +27,19 @@
 }
 
 .carkeek-add-to-calendar__toggle::after {
-	content: "\25BE"; /* ▾ */
-	font-size: 0.8em;
+	content: ""; /* ▾ */
+	background-color: currentColor;
+	-webkit-mask-image: url("../images/calendar-days.svg");
+	mask-image: url("../images/calendar-days.svg");
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	width: 1em;
+	height: 1em;
 	line-height: 1;
 }
 
-.carkeek-add-to-calendar[open] .carkeek-add-to-calendar__toggle::after {
-	content: "\25B4"; /* ▴ */
-}
 
 .carkeek-add-to-calendar__menu {
 	position: absolute;

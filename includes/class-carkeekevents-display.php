@@ -206,6 +206,94 @@ class CarkeekEvents_Display {
 		return apply_filters( 'carkeek_events_date_range', $output, $start_date, $start_time, $end_date, $end_time, $date_time_label );
 	}
 
+	/**
+	 * Get the event start date, formatted for display.
+	 *
+	 * @since 2.3.0
+	 * @param int    $post_id Event post ID.
+	 * @param string $format  Optional PHP date format. Defaults to the plugin's
+	 *                        Date Format setting (then the WP site setting).
+	 * @return string Formatted date, or empty string if no start date is set.
+	 */
+	public static function get_start_date( $post_id, $format = '' ) {
+		return self::format_event_part( get_post_meta( $post_id, '_carkeek_event_start', true ), 'date', $format );
+	}
+
+	/**
+	 * Get the event end date, formatted for display.
+	 *
+	 * @since 2.3.0
+	 * @param int    $post_id Event post ID.
+	 * @param string $format  Optional PHP date format. Defaults to the Date Format setting.
+	 * @return string Formatted date, or empty string if no end date is set.
+	 */
+	public static function get_end_date( $post_id, $format = '' ) {
+		return self::format_event_part( get_post_meta( $post_id, '_carkeek_event_end', true ), 'date', $format );
+	}
+
+	/**
+	 * Get the event start time, formatted for display.
+	 *
+	 * @since 2.3.0
+	 * @param int    $post_id Event post ID.
+	 * @param string $format  Optional PHP time format. Defaults to the plugin's
+	 *                        Time Format setting (then the WP site setting).
+	 * @return string Formatted time, or empty string for all-day events (no time set).
+	 */
+	public static function get_start_time( $post_id, $format = '' ) {
+		return self::format_event_part( get_post_meta( $post_id, '_carkeek_event_start', true ), 'time', $format );
+	}
+
+	/**
+	 * Get the event end time, formatted for display.
+	 *
+	 * @since 2.3.0
+	 * @param int    $post_id Event post ID.
+	 * @param string $format  Optional PHP time format. Defaults to the Time Format setting.
+	 * @return string Formatted time, or empty string when no end time is set.
+	 */
+	public static function get_end_time( $post_id, $format = '' ) {
+		return self::format_event_part( get_post_meta( $post_id, '_carkeek_event_end', true ), 'time', $format );
+	}
+
+	/**
+	 * Format a single date or time component from an ISO 8601 local datetime string.
+	 *
+	 * Parses using the same convention as format_date_range(): a 00:00:00 time
+	 * means "no time set" (all-day), so time parts return empty for those.
+	 *
+	 * @since 2.3.0
+	 * @param string $iso    ISO 8601 local datetime (YYYY-MM-DDTHH:MM:SS), or ''.
+	 * @param string $part   'date' or 'time'.
+	 * @param string $format Optional PHP format override.
+	 * @return string Formatted value, or empty string when the component is absent.
+	 */
+	private static function format_event_part( $iso, $part, $format = '' ) {
+		if ( ! $iso ) {
+			return '';
+		}
+
+		$date = substr( $iso, 0, 10 );
+		$time = ( strlen( $iso ) > 10 && substr( $iso, 11 ) !== '00:00:00' )
+			? substr( $iso, 11, 5 ) : '';
+
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+
+		if ( 'time' === $part ) {
+			if ( ! $time ) {
+				return '';
+			}
+			$fmt = $format ? $format : ( ! empty( $settings['time_format'] ) ? $settings['time_format'] : get_option( 'time_format' ) );
+			return date_i18n( $fmt, strtotime( $date . ' ' . $time ) );
+		}
+
+		if ( ! $date ) {
+			return '';
+		}
+		$fmt = $format ? $format : ( ! empty( $settings['date_format'] ) ? $settings['date_format'] : get_option( 'date_format' ) );
+		return date_i18n( $fmt, strtotime( $date ) );
+	}
+
 	// -----------------------------------------------------------------------
 	// Location display
 	// -----------------------------------------------------------------------
