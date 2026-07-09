@@ -40,6 +40,68 @@ class CarkeekEvents_Display {
 	}
 
 	// -----------------------------------------------------------------------
+	// Event state
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Whether an event has already ended (a "past event").
+	 *
+	 * Template equivalent of The Events Calendar's tribe_is_past_event().
+	 * Uses the site timezone (wp_timezone()) so it is DST-correct.
+	 *
+	 *   - Timed events are past once the current time passes the end datetime.
+	 *   - All-day events (end has no time, i.e. 00:00:00) span the whole day, so
+	 *     they are past only once the day AFTER the end date has begun.
+	 *   - Open-ended events (no end date) are never past.
+	 *
+	 * @since 2.1.1
+	 * @param int|null $post_id Event post ID. Defaults to the current post in the loop.
+	 * @return bool True when the event has ended.
+	 */
+	public static function is_past_event( $post_id = null ) {
+		$post_id = $post_id ? $post_id : get_the_ID();
+		if ( ! $post_id ) {
+			return false;
+		}
+
+		$end_iso = get_post_meta( $post_id, '_carkeek_event_end', true );
+
+		// Open-ended events (no end date) never become past.
+		if ( ! $end_iso ) {
+			return apply_filters( 'carkeek_events_is_past_event', false, $post_id );
+		}
+
+		$tz       = wp_timezone();
+		$now      = new DateTimeImmutable( 'now', $tz );
+		$end_date = substr( $end_iso, 0, 10 );
+		$end_time = ( strlen( $end_iso ) > 10 && substr( $end_iso, 11 ) !== '00:00:00' )
+			? substr( $end_iso, 11, 5 ) : '';
+
+		if ( $end_time ) {
+			$end     = date_create_immutable( $end_date . ' ' . $end_time . ':00', $tz );
+			$is_past = $end && $now > $end;
+		} else {
+			// All-day: past once the following day begins (exclusive end).
+			$end     = date_create_immutable( $end_date . ' 00:00:00', $tz );
+			$end     = $end ? $end->modify( '+1 day' ) : false;
+			$is_past = $end && $now >= $end;
+		}
+
+		return (bool) apply_filters( 'carkeek_events_is_past_event', $is_past, $post_id );
+	}
+
+	/**
+	 * Whether an event is upcoming (has not yet ended). Inverse of is_past_event().
+	 *
+	 * @since 2.1.1
+	 * @param int|null $post_id Event post ID. Defaults to the current post in the loop.
+	 * @return bool
+	 */
+	public static function is_upcoming_event( $post_id = null ) {
+		return ! self::is_past_event( $post_id );
+	}
+
+	// -----------------------------------------------------------------------
 	// Date / time formatting
 	// -----------------------------------------------------------------------
 

@@ -154,6 +154,22 @@ The `<a>` tag includes the class `wp-element-button` so it inherits the theme's 
 
 ---
 
+### `is_past_event( $post_id = null )` / `is_upcoming_event( $post_id = null )`
+
+Boolean helpers for whether an event has ended — the equivalent of The Events Calendar's `tribe_is_past_event()`. `$post_id` defaults to the current post in the loop.
+
+```php
+if ( CarkeekEvents_Display::is_past_event() ) {
+	echo '<span class="event-ended">This event has ended.</span>';
+}
+```
+
+- **Timed** events are past once the current time passes the end datetime.
+- **All-day** events (end with no time) are past only once the day *after* the end date begins.
+- **Open-ended** events (no end date) are never past.
+- Uses the site timezone (`wp_timezone()`), so it is DST-correct.
+
+**Filter:** `carkeek_events_is_past_event( $is_past, $post_id )`
 ### `get_add_to_calendar_html( $post_id, $args = array() )`
 
 Returns an "Add to Calendar" disclosure control (a native `<details>` element) with a **Google Calendar** link and a **Download .ics** link. Returns empty string when the event has no start date, when the **Add to Calendar** field is disabled, or for password-protected events. Optional `$args`: `buttonLabel`, `googleLabel`, `icalLabel`.
