@@ -145,6 +145,7 @@ class CarkeekEvents_Query {
 		if ( 'start_date' === $query->get( 'orderby' ) ) {
 			$query->set( 'orderby', 'meta_value' );
 			$query->set( 'meta_key', '_carkeek_event_start' );
+			$query->set( 'order', 'DESC' );
 		}
 	}
 }

@@ -132,6 +132,10 @@
     "altTaxonomy": {
       "type": "string",
       "default": ""
+    },
+    "isFacetWP": {
+      "type": "boolean",
+      "default": false
     }
   },
   "viewScript": "file:./view.js",

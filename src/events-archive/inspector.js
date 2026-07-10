@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { InspectorControls } from '@wordpress/block-editor';
+import { InspectorControls, InspectorAdvancedControls} from '@wordpress/block-editor';
 import {
 	PanelBody,
 	PanelRow,
@@ -64,6 +64,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		altStartMetaKey,
 		altEndMetaKey,
 		altTaxonomy,
+		isFacetWP
 	} = attributes;
 
 	// -----------------------------------------------------------------------
@@ -139,6 +140,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 	const showAll = numberOfPosts === -1;
 
 	return (
+		<>
 		<InspectorControls>
 
 			{ /* Events Panel — first, open by default */ }
@@ -488,6 +490,15 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 			</PanelBody>
 
 		</InspectorControls>
+		<InspectorAdvancedControls>
+			<ToggleControl
+				label={__("Use with FacetWP")}
+				checked={ isFacetWP }
+				onChange={(value) => setAttributes({ isFacetWP: value })}
+			/>
+
+		</InspectorAdvancedControls>
+		</>
 	);
 };
 

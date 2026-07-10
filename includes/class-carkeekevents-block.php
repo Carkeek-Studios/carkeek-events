@@ -110,6 +110,10 @@ class CarkeekEvents_Block {
 
 		$slots = $this->get_slots( $attributes );
 
+		if ( $attributes['isFacetWP'] ) {
+			$list_classes[] = 'facetwp-template';
+		}
+
 		$wrapper_attrs = get_block_wrapper_attributes( array( 'class' => 'carkeek-events-archive-block' ) );
 
 		ob_start();
@@ -239,6 +243,11 @@ class CarkeekEvents_Block {
 			),
 		);
 
+		// Add FacetWP support if enabled.
+		if ( $attributes['isFacetWP'] ) {
+			$args['facetwp'] = true;
+		}
+
 		// Exclude events flagged "Hide from calendar" unless the block opts in.
 		// Only applies to carkeek_event (alt post types have no such meta).
 		if ( ! $config['is_alt'] && empty( $attributes['showHidden'] ) ) {
@@ -296,8 +305,8 @@ class CarkeekEvents_Block {
 	 * @return string HTML for the card.
 	 */
 	private function render_single_card( $post_id, $permalink, $slots, $attributes ) {
-		$html = '<div class="carkeek-event-card">';
-
+		$html = '<div class="carkeek-event-card" data-id="' . esc_attr( $post_id ) . '">';
+		$image_link = '';
 		if ( ! empty( $attributes['displayFeaturedImage'] ) && has_post_thumbnail( $post_id ) ) {
 			$focal_point = get_post_meta( $post_id, '_carkeekblocks_featured_image_focal_point', true );
 			$style       = '';
@@ -307,11 +316,12 @@ class CarkeekEvents_Block {
 				$style = 'object-position:' . esc_attr( $x ) . '% ' . esc_attr( $y ) . '%;';
 			}
 
-			$html .= '<a class="carkeek-event-card__image-link" href="' . esc_url( $permalink ) . '">';
-			$html .= get_the_post_thumbnail( $post_id, 'large', array( 'style' => $style ) );
-			$html .= '</a>';
+			$image_link .= '<a class="carkeek-event-card__image-link" href="' . esc_url( $permalink ) . '">';
+			$image = get_the_post_thumbnail( $post_id, 'large', array( 'style' => $style ) );
+			$image_link .= apply_filters( 'carkeek_events_image_html', $image, $post_id, $attributes );
+			$image_link .= '</a>';
 		}
-
+		$html .= apply_filters( 'carkeek_events_image_link', $image_link, $post_id, $attributes );
 		$html .= '<div class="carkeek-event-card__content">';
 		$before_slots = apply_filters( 'carkeek_events_block_before_slots', '', $post_id, $attributes );
 		if ( $before_slots ) {
