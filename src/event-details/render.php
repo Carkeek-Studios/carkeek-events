@@ -51,12 +51,15 @@ if ( $organizer_id ) {
 	get_post_meta( $organizer_id );
 }
 
+// Labels, separator, and directions are driven by the global settings
+// (Events > Settings), not per-block attributes. Directions follow the
+// Location Display setting (address_directions).
 $parts = array_filter(
 	array(
-		CarkeekEvents_Display::get_date_range_html( $post_id, $attributes['dateTimeSeparator'], $attributes['dateTimeLabel'] ),
-		CarkeekEvents_Display::get_event_location_html( $post_id, $attributes['locationLabel'], $attributes['showDirectionsLink'] ),
-		CarkeekEvents_Display::get_event_organizer_html( $post_id, $attributes['organizerLabel'] ),
-		CarkeekEvents_Display::get_event_link_html( $post_id, ),
+		CarkeekEvents_Display::get_date_range_html( $post_id, CarkeekEvents_Display::datetime_separator(), CarkeekEvents_Display::datetime_label() ),
+		CarkeekEvents_Display::get_event_location_html( $post_id, CarkeekEvents_Display::location_label() ),
+		CarkeekEvents_Display::get_event_organizer_html( $post_id, CarkeekEvents_Display::organizer_label() ),
+		CarkeekEvents_Display::get_event_link_html( $post_id ),
 	)
 );
 

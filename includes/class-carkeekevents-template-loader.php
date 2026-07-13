@@ -77,11 +77,45 @@ function carkeek_events_register_template_hooks() {
 	// Single event template.
 	add_filter( 'single_template', 'carkeek_events_single_template' );
 
+	// Structural CSS for the default single template.
+	add_action( 'wp_enqueue_scripts', 'carkeek_events_enqueue_single_css' );
+
 	// Card template for carkeek-blocks custom-archive block.
 	// Note: carkeek_block_custom_post_layout__template passes (template, attributes) — 2 args only.
 	add_filter( 'carkeek_block_custom_post_layout__template', 'carkeek_events_card_template', 10, 2 );
 }
 add_action( 'plugins_loaded', 'carkeek_events_register_template_hooks', 20 );
+
+/**
+ * Enqueue the minimal structural CSS for the default single-event template.
+ *
+ * Only loads on a single carkeek_event when the plugin template is active.
+ * Disable with: add_filter( 'carkeek_events_enqueue_single_css', '__return_false' ).
+ *
+ * @since 2.5.0
+ * @return void
+ */
+function carkeek_events_enqueue_single_css() {
+	if ( ! is_singular( 'carkeek_event' ) ) {
+		return;
+	}
+
+	$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+	if ( isset( $settings['use_plugin_template'] ) && '0' === $settings['use_plugin_template'] ) {
+		return;
+	}
+
+	if ( ! apply_filters( 'carkeek_events_enqueue_single_css', true ) ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'carkeek-events-single',
+		CARKEEKEVENTS_PLUGIN_URL . 'assets/css/carkeek-events-single.css',
+		array(),
+		CARKEEKEVENTS_VERSION
+	);
+}
 
 /**
  * Return the single event template path.

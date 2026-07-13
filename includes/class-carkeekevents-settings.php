@@ -14,6 +14,12 @@
  *   use_organizers       => '1'
  *   use_button           => '1'
  *   use_add_to_calendar  => '1'
+ *   events_landing_url          => ''  (blank => event archive link)
+ *   datetime_label              => 'Date and Time'  (blank => hidden)
+ *   datetime_separator          => '<br/>'
+ *   location_label              => 'Location'  (blank => hidden)
+ *   organizer_label             => 'Organizer'  (blank => hidden)
+ *   show_add_to_calendar_single => '1'
  *   google_maps_api_key  => ''
  *
  * @package carkeek-events
@@ -147,6 +153,54 @@ class CarkeekEvents_Settings {
 			'organizer_display',
 			__( 'Organizer Display', 'carkeek-events' ),
 			array( $this, 'organizer_display_callback' ),
+			'carkeek-events',
+			'carkeek_events_display_section'
+		);
+
+		add_settings_field(
+			'events_landing_url',
+			__( 'Events Landing Page', 'carkeek-events' ),
+			array( $this, 'events_landing_url_callback' ),
+			'carkeek-events',
+			'carkeek_events_display_section'
+		);
+
+		add_settings_field(
+			'datetime_label',
+			__( 'Date & Time Label', 'carkeek-events' ),
+			array( $this, 'datetime_label_callback' ),
+			'carkeek-events',
+			'carkeek_events_display_section'
+		);
+
+		add_settings_field(
+			'datetime_separator',
+			__( 'Date / Time Separator', 'carkeek-events' ),
+			array( $this, 'datetime_separator_callback' ),
+			'carkeek-events',
+			'carkeek_events_display_section'
+		);
+
+		add_settings_field(
+			'location_label',
+			__( 'Location Label', 'carkeek-events' ),
+			array( $this, 'location_label_callback' ),
+			'carkeek-events',
+			'carkeek_events_display_section'
+		);
+
+		add_settings_field(
+			'organizer_label',
+			__( 'Organizer Label', 'carkeek-events' ),
+			array( $this, 'organizer_label_callback' ),
+			'carkeek-events',
+			'carkeek_events_display_section'
+		);
+
+		add_settings_field(
+			'show_add_to_calendar_single',
+			__( 'Add to Calendar (single template)', 'carkeek-events' ),
+			array( $this, 'show_add_to_calendar_single_callback' ),
 			'carkeek-events',
 			'carkeek_events_display_section'
 		);
@@ -373,6 +427,119 @@ class CarkeekEvents_Settings {
 	}
 
 	/**
+	 * Events landing page URL field callback.
+	 *
+	 * @since 2.5.0
+	 * @return void
+	 */
+	public function events_landing_url_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['events_landing_url'] ?? '';
+		?>
+		<input type="text"
+			name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[events_landing_url]"
+			id="carkeek_events_landing_url"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="regular-text"
+			placeholder="/events/" />
+		<p class="description"><?php esc_html_e( 'URL the "Events" tag links to on the single-event template. Relative (/events/) or absolute. Leave blank to use the event archive link.', 'carkeek-events' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Date & Time label field callback.
+	 *
+	 * @since 2.5.0
+	 * @return void
+	 */
+	public function datetime_label_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['datetime_label'] ?? 'Date and Time';
+		?>
+		<input type="text"
+			name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[datetime_label]"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="regular-text" />
+		<p class="description"><?php esc_html_e( 'Heading shown above the date/time on the single template and Event Details block. Leave blank to hide the label.', 'carkeek-events' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Date / Time separator field callback.
+	 *
+	 * @since 2.5.0
+	 * @return void
+	 */
+	public function datetime_separator_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['datetime_separator'] ?? '<br/>';
+		?>
+		<input type="text"
+			name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[datetime_separator]"
+			value="<?php echo esc_attr( $value ); ?>"
+			size="10" />
+		<p class="description"><?php esc_html_e( 'Placed between the date and the time. Use <br/> for separate lines, or a comma / pipe for one line. Only <br> is allowed as markup.', 'carkeek-events' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Location label field callback.
+	 *
+	 * @since 2.5.0
+	 * @return void
+	 */
+	public function location_label_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['location_label'] ?? 'Location';
+		?>
+		<input type="text"
+			name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[location_label]"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="regular-text" />
+		<p class="description"><?php esc_html_e( 'Heading shown above the location. Leave blank to hide the label.', 'carkeek-events' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Organizer label field callback.
+	 *
+	 * @since 2.5.0
+	 * @return void
+	 */
+	public function organizer_label_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['organizer_label'] ?? 'Organizer';
+		?>
+		<input type="text"
+			name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[organizer_label]"
+			value="<?php echo esc_attr( $value ); ?>"
+			class="regular-text" />
+		<p class="description"><?php esc_html_e( 'Heading shown above the organizer. Leave blank to hide the label.', 'carkeek-events' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * "Show Add to Calendar in single template" field callback.
+	 *
+	 * @since 2.5.0
+	 * @return void
+	 */
+	public function show_add_to_calendar_single_callback() {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		$value    = $settings['show_add_to_calendar_single'] ?? '1';
+		?>
+		<label>
+			<input type="checkbox"
+				name="<?php echo esc_attr( CARKEEKEVENTS_OPTION_NAME ); ?>[show_add_to_calendar_single]"
+				value="1"
+				<?php checked( $value, '1' ); ?> />
+			<?php esc_html_e( 'Show the Add to Calendar button under the image on the single-event template.', 'carkeek-events' ); ?>
+		</label>
+		<p class="description"><?php esc_html_e( 'Requires the "Add to Calendar" field to be enabled under Fields in Use. This only controls the default template placement.', 'carkeek-events' ); ?></p>
+		<?php
+	}
+
+	/**
 	 * Fields in Use section description.
 	 *
 	 * @since 2.1.0
@@ -560,6 +727,15 @@ class CarkeekEvents_Settings {
 		$sanitized['organizer_display'] = in_array( $input['organizer_display'] ?? '', $allowed_organizer, true )
 			? $input['organizer_display']
 			: 'link';
+
+		// Single-template layout labels + landing page.
+		$sanitized['events_landing_url'] = esc_url_raw( $input['events_landing_url'] ?? '' );
+		$sanitized['datetime_label']     = sanitize_text_field( $input['datetime_label'] ?? 'Date and Time' );
+		// Separator is concatenated as trusted HTML; allow only <br>.
+		$sanitized['datetime_separator'] = wp_kses( $input['datetime_separator'] ?? '<br/>', array( 'br' => array() ) );
+		$sanitized['location_label']     = sanitize_text_field( $input['location_label'] ?? 'Location' );
+		$sanitized['organizer_label']    = sanitize_text_field( $input['organizer_label'] ?? 'Organizer' );
+		$sanitized['show_add_to_calendar_single'] = ! empty( $input['show_add_to_calendar_single'] ) ? '1' : '0';
 
 		// Fields in Use. All three checkboxes always render on the settings form,
 		// so an absent key means the box was unchecked.

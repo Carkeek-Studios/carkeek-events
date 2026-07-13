@@ -1,14 +1,11 @@
 import { ServerSideRender } from '@wordpress/server-side-render';
-import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
+import { useBlockProps } from '@wordpress/block-editor';
 import { Placeholder, Spinner } from '@wordpress/components';
-import { PanelBody, CheckboxControl, RadioControl, TextControl, ToggleControl } from "@wordpress/components";
 import { __ } from '@wordpress/i18n';
 
-export default function Edit(props) {
-	const { attributes, context, setAttributes } = props;
+export default function Edit( props ) {
+	const { attributes, context } = props;
 	const { postId } = context;
-
-	const { dateTimeLabel, dateTimeSeparator, locationLabel, organizerLabel, showDirectionsLink } = attributes;
 
 	if ( ! postId ) {
 		return (
@@ -18,44 +15,15 @@ export default function Edit(props) {
 		);
 	}
 
-
-
 	return (
 		<div { ...useBlockProps() }>
-			<InspectorControls>
-				<PanelBody title={ __( 'Event Details Layout', 'carkeek-events' ) }  initialOpen={ true }>
-					<p>Customize the labels for the event details leave blank to hide.</p>
-					<TextControl
-						label={ __( 'Date and Time Label', 'carkeek-events' ) }
-						value={ dateTimeLabel }
-						onChange={ ( value ) => setAttributes( { dateTimeLabel: value } ) }
-					/>
-					<TextControl
-						label={ __( 'Date and Time Separator', 'carkeek-events' ) }
-						value={ dateTimeSeparator }
-						help={ __( 'Separator between date and time, default is a line break.', 'carkeek-events' ) }
-						onChange={ ( value ) => setAttributes( { dateTimeSeparator: value } ) }
-					/>
-					<TextControl
-						label={ __( 'Location Label', 'carkeek-events' ) }
-						value={ locationLabel }
-						onChange={ ( value ) => setAttributes( { locationLabel: value } ) }
-					/>
-					<ToggleControl
-						label={ __( 'Show Directions Link', 'carkeek-events' ) }
-						checked={ showDirectionsLink }
-						onChange={ ( value ) => setAttributes( { showDirectionsLink: value } ) }
-					/>
-					<TextControl
-						label={ __( 'Organizer Label', 'carkeek-events' ) }
-						value={ organizerLabel }
-						onChange={ ( value ) => setAttributes( { organizerLabel: value } ) }
-					/>
-
-				</PanelBody>
-			</InspectorControls>
 			<div className="event-details-preview">
-				<p className="note">Details Placeholder set date and time at bottom of template - open up Meta Boxes to edit.</p>
+				<p className="note">
+					{ __(
+						'Event details are set in the meta box below. Labels and separator are configured in Events → Settings.',
+						'carkeek-events'
+					) }
+				</p>
 				<ServerSideRender
 					block="carkeek-events/event-details"
 					attributes={ attributes }

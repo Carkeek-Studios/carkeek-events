@@ -1,0 +1,42 @@
+/**
+ * Carkeek Events — single event template (structural only).
+ *
+ * Layout scaffolding for the default single-event template: a two-column body
+ * (meta | media) that stacks on small screens. No colors, fonts, or brand
+ * styling — themes restyle via these BEM classes. Disable entirely with:
+ *   add_filter( 'carkeek_events_enqueue_single_css', '__return_false' );
+ */
+
+.carkeek-event__body {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 2rem;
+	align-items: start;
+	margin: 1.5rem 0;
+}
+
+.carkeek-event__body--no-media {
+	grid-template-columns: 1fr;
+}
+
+@media (max-width: 782px) {
+	.carkeek-event__body {
+		grid-template-columns: 1fr;
+	}
+}
+
+.carkeek-event__tag {
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-size: 0.85em;
+	margin: 0 0 0.25rem;
+}
+
+.carkeek-event__media img {
+	max-width: 100%;
+	height: auto;
+}
+
+.carkeek-event__add-to-calendar {
+	margin-top: 1rem;
+}
