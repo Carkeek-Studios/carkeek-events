@@ -254,7 +254,9 @@ CarkeekEvents_Display::get_organizer_html( $organizer_id, $organizer_text, $post
 The plugin ships **two** single-event templates and picks one based on the **Editor** setting (see Settings Reference):
 
 - **Block editor on (default):** `single-carkeek_event-blocks.php` — renders the title and `the_content()` only, so the `event-details` / `event-date-time` / etc. blocks control the layout. If no `carkeek-events/event-details` block is present, it falls back to rendering the PHP meta header so dates/location/organizer/button are never lost.
-- **Classic editor (Editor setting enabled):** `single-carkeek_event.php` — renders a PHP meta header (dates, location, organizer, CTA button) above the content.
+- **Classic editor (Editor setting enabled):** `single-carkeek_event.php` — renders the plugin's default **two-column layout**: an "Events" tag + title, a meta column (date/time, location, organizer, registration button), a media column (featured image + optional Add to Calendar), and full-width content below. Labels, the date/time separator, the landing-page link, and the Add to Calendar toggle are all set under **Events > Settings**. Minimal structural CSS ships for the two-column grid (stacking on mobile) and can be disabled with `add_filter( 'carkeek_events_enqueue_single_css', '__return_false' )`.
+
+The classic template exposes these hooks: `carkeek_events_single_title_block` (filter — replace the whole tag+title), `carkeek_events_before_title` / `carkeek_events_after_title`, and `carkeek_events_before_featured_image` / `carkeek_events_after_featured_image` (actions, each passed `$post_id`).
 
 Template hierarchy for the selected file (first match wins):
 
@@ -388,6 +390,8 @@ $event_link     = CarkeekEvents_Display::get_event_link_html( $post_id );
 | `carkeek_events_card_template` | `$template, $post, $attributes` | Supply a custom event card template path |
 | `carkeek_events_single_template` | `$template` | Override the single event template path |
 | `carkeek_events_block_query_args` | `$args, $attributes` | Modify WP_Query args for the Events Archive block |
+| `carkeek_events_single_title_block` | `$html, $post_id` | Replace the whole tag + title block on the single template |
+| `carkeek_events_enqueue_single_css` | `$enabled` | Return `false` to skip the plugin's structural single-template CSS |
 
 ### Actions
 
@@ -397,6 +401,8 @@ $event_link     = CarkeekEvents_Display::get_event_link_html( $post_id );
 | `carkeek_events_meta_box_after_location` | `$post` | Add fields after location in the event meta box |
 | `carkeek_events_meta_box_after_organizer` | `$post` | Add fields after organizer in the event meta box |
 | `carkeek_events_meta_box_after_link` | `$post` | Add fields after the website/button section |
+| `carkeek_events_before_title` / `carkeek_events_after_title` | `$post_id` | Single template — inject markup around the tag+title |
+| `carkeek_events_before_featured_image` / `carkeek_events_after_featured_image` | `$post_id` | Single template — inject content around the featured image |
 | `carkeek_events_before_expire` | `$post_id` | Fires before cron sets `post_status = private` |
 | `carkeek_events_after_geocode` | `$post_id, $lat, $lng` | Fires after geocoding completes |
 
@@ -417,6 +423,12 @@ All settings are stored as a single array under the option key `carkeek_events_s
 | `time_format` | `''` | PHP date format string. Falls back to WP site setting. |
 | `location_display` | `link` | `link` \| `address` \| `address_directions` |
 | `organizer_display` | `link` | `link` \| `info` |
+| `events_landing_url` | `''` | URL the "Events" tag links to on the single template. Relative or absolute. Blank → event archive link. |
+| `datetime_label` | `Date and Time` | Heading above the date/time (single template + Event Details block). Blank hides it. |
+| `datetime_separator` | `<br/>` | Between date and time. Only `<br>` allowed as markup (e.g. `<br/>`, `, `, ` \| `). |
+| `location_label` | `Location` | Heading above the location. Blank hides it. |
+| `organizer_label` | `Organizer` | Heading above the organizer. Blank hides it. |
+| `show_add_to_calendar_single` | `1` | Show the Add to Calendar button on the single template (requires the Add to Calendar field enabled). |
 | `use_locations` | `1` | `1` = Location field is in use. `0` = hide the Location input in the editor and suppress location output on the front end and in the archive block. |
 | `use_organizers` | `1` | `1` = Organizer field is in use. `0` = hide the Organizer input and suppress organizer output. |
 | `use_button` | `1` | `1` = Registration button (event website URL + button label) is in use. `0` = hide those inputs and suppress the CTA button. Existing data is preserved. |

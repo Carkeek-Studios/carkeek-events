@@ -25,7 +25,7 @@ while ( have_posts() ) :
 	$post_id = get_the_ID();
 	?>
 
-	<article id="post-<?php the_ID(); ?>" <?php post_class( 'carkeek-event' ); ?>>
+	<article id="post-<?php the_ID(); ?>" <?php post_class( 'carkeek-event page-content' ); ?>>
 
 		<h1 class="carkeek-event__title"><?php the_title(); ?></h1>
 

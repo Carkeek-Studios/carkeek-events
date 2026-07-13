@@ -40,6 +40,96 @@ class CarkeekEvents_Display {
 	}
 
 	// -----------------------------------------------------------------------
+	// Single-template display settings (labels, separator, landing page)
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Read a plugin setting with a default.
+	 *
+	 * @since 2.5.0
+	 * @param string $key     Setting key.
+	 * @param mixed  $default Value when the key is absent.
+	 * @return mixed
+	 */
+	private static function setting( $key, $default = '' ) {
+		$settings = get_option( CARKEEKEVENTS_OPTION_NAME, array() );
+		return array_key_exists( $key, $settings ) ? $settings[ $key ] : $default;
+	}
+
+	/**
+	 * Date/time heading label (blank hides it). Single source of truth for the
+	 * classic template and the Event Details block.
+	 *
+	 * @since 2.5.0
+	 * @return string
+	 */
+	public static function datetime_label() {
+		return self::setting( 'datetime_label', __( 'Date and Time', 'carkeek-events' ) );
+	}
+
+	/**
+	 * Separator placed between the date and the time.
+	 *
+	 * @since 2.5.0
+	 * @return string
+	 */
+	public static function datetime_separator() {
+		return self::setting( 'datetime_separator', '<br/>' );
+	}
+
+	/**
+	 * Location heading label (blank hides it).
+	 *
+	 * @since 2.5.0
+	 * @return string
+	 */
+	public static function location_label() {
+		return self::setting( 'location_label', __( 'Location', 'carkeek-events' ) );
+	}
+
+	/**
+	 * Organizer heading label (blank hides it).
+	 *
+	 * @since 2.5.0
+	 * @return string
+	 */
+	public static function organizer_label() {
+		return self::setting( 'organizer_label', __( 'Organizer', 'carkeek-events' ) );
+	}
+
+	/**
+	 * Whether to show the Add to Calendar button on the single-event template.
+	 *
+	 * @since 2.5.0
+	 * @return bool
+	 */
+	public static function show_add_to_calendar_single() {
+		return '0' !== self::setting( 'show_add_to_calendar_single', '1' );
+	}
+
+	/**
+	 * URL the "Events" tag links to on the single-event template.
+	 *
+	 * Falls back to the event post-type archive link, then to a home-relative
+	 * archive-slug URL when the archive is disabled.
+	 *
+	 * @since 2.5.0
+	 * @return string
+	 */
+	public static function events_landing_url() {
+		$url = self::setting( 'events_landing_url', '' );
+		if ( '' !== $url ) {
+			return $url;
+		}
+		$archive = get_post_type_archive_link( 'carkeek_event' );
+		if ( $archive ) {
+			return $archive;
+		}
+		$slug = self::setting( 'archive_slug', 'events' );
+		return home_url( '/' . $slug . '/' );
+	}
+
+	// -----------------------------------------------------------------------
 	// Event state
 	// -----------------------------------------------------------------------
 
@@ -121,7 +211,7 @@ class CarkeekEvents_Display {
 	 *                          or '' to rely purely on CSS.
 	 * @return string HTML string, or empty string if no start date is set.
 	 */
-	public static function get_date_range_html( $post_id, $separator = ', ', $date_time_label = '' ) {
+	public static function get_date_range_html( $post_id, $separator = '', $date_time_label = '' ) {
 		$start = get_post_meta( $post_id, '_carkeek_event_start', true );
 		$end   = get_post_meta( $post_id, '_carkeek_event_end', true );
 
