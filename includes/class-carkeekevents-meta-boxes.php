@@ -31,6 +31,7 @@ class CarkeekEvents_Meta_Boxes {
 		add_action( 'save_post_carkeek_location', array( $instance, 'save_location_meta' ), 10, 2 );
 		add_action( 'save_post_carkeek_organizer', array( $instance, 'save_organizer_meta' ), 10, 2 );
 		add_action( 'wp_ajax_carkeek_events_search_posts', array( $instance, 'ajax_search_posts' ) );
+		add_action( 'wp_ajax_carkeek_events_get_cpt_fields', array( $instance, 'ajax_get_cpt_fields' ) );
 	}
 
 	/**
@@ -263,48 +264,64 @@ class CarkeekEvents_Meta_Boxes {
 	 */
 	private function render_relationship_field( $type, $cpt_id, $cpt_name, $text ) {
 		$post_type = 'location' === $type ? 'carkeek_location' : 'carkeek_organizer';
+		$has_cpt   = (int) $cpt_id > 0;
+
+		// Prefill the details panel with the linked record's current fields.
+		$values = $has_cpt ? $this->get_cpt_field_values( $type, $cpt_id ) : array();
+		if ( $has_cpt && '' === ( $values['name'] ?? '' ) ) {
+			$values['name'] = $cpt_name;
+		}
+		$usage = $has_cpt ? $this->count_linked_events( $type, $cpt_id ) : 0;
+
+		/* translators: %s: 'location' or 'organizer'. */
+		$placeholder = sprintf( __( 'Search or select a %s…', 'carkeek-events' ), $type );
+		/* translators: %s: 'location' or 'organizer'. */
+		$create_label = sprintf( __( '+ Create new %s', 'carkeek-events' ), $type );
 		?>
-		<div class="carkeek-events-relationship" data-type="<?php echo esc_attr( $type ); ?>">
+		<div class="carkeek-events-relationship <?php echo $has_cpt ? 'is-selected' : ''; ?>"
+			data-type="<?php echo esc_attr( $type ); ?>"
+			data-post-type="<?php echo esc_attr( $post_type ); ?>">
 
 			<input type="hidden"
 				name="carkeek_event_<?php echo esc_attr( $type ); ?>_mode"
 				class="carkeek-events-relationship__mode"
-				value="cpt" />
+				value="<?php echo $has_cpt ? 'cpt' : ''; ?>" />
 
-			<div class="carkeek-events-relationship__tabs">
-				<button type="button" class="carkeek-events-tab is-active" data-tab="cpt">
-					<?php esc_html_e( 'Select existing', 'carkeek-events' ); ?>
-				</button>
-				<button type="button" class="carkeek-events-tab" data-tab="new">
-					<?php esc_html_e( 'Create new', 'carkeek-events' ); ?>
-				</button>
+			<input type="hidden"
+				name="carkeek_event_<?php echo esc_attr( $type ); ?>_id"
+				id="carkeek_event_<?php echo esc_attr( $type ); ?>_id"
+				class="carkeek-events-cpt-id"
+				value="<?php echo esc_attr( $cpt_id ); ?>" />
+
+			<input type="hidden"
+				name="carkeek_event_<?php echo esc_attr( $type ); ?>_fields_loaded"
+				class="carkeek-events-relationship__loaded"
+				value="<?php echo $has_cpt ? '1' : '0'; ?>" />
+
+			<div class="carkeek-events-combobox" <?php echo $has_cpt ? 'hidden' : ''; ?>>
+				<input type="text"
+					class="carkeek-events-combobox__input"
+					role="combobox"
+					aria-expanded="false"
+					aria-autocomplete="list"
+					data-post-type="<?php echo esc_attr( $post_type ); ?>"
+					placeholder="<?php echo esc_attr( $placeholder ); ?>"
+					autocomplete="off" />
+				<ul class="carkeek-events-combobox__list" role="listbox" hidden>
+					<li class="carkeek-events-combobox__create" role="option" tabindex="-1" data-action="create"><?php echo esc_html( $create_label ); ?></li>
+				</ul>
 			</div>
 
-			<div class="carkeek-events-relationship__panel carkeek-events-relationship__panel--cpt is-active">
-				<input type="hidden"
-					name="carkeek_event_<?php echo esc_attr( $type ); ?>_id"
-					id="carkeek_event_<?php echo esc_attr( $type ); ?>_id"
-					class="carkeek-events-cpt-id"
-					value="<?php echo esc_attr( $cpt_id ); ?>" />
-				<div class="carkeek-events-search-wrap">
-					<input type="text"
-						class="carkeek-events-search-input"
-						data-post-type="<?php echo esc_attr( $post_type ); ?>"
-						placeholder="<?php echo esc_attr( sprintf( __( 'Search %s…', 'carkeek-events' ), ucfirst( $type ) ) ); ?>"
-						value="<?php echo esc_attr( $cpt_name ); ?>"
-						autocomplete="off" />
-					<ul class="carkeek-events-search-results"></ul>
-				</div>
-				<?php if ( $cpt_id ) : ?>
-					<p class="carkeek-events-selected-name">
-						<?php echo esc_html( $cpt_name ); ?>
-						<button type="button" class="carkeek-events-clear-cpt" aria-label="<?php esc_attr_e( 'Clear selection', 'carkeek-events' ); ?>">&#x2715;</button>
-					</p>
-				<?php endif; ?>
+			<div class="carkeek-events-relationship__selected" <?php echo $has_cpt ? '' : 'hidden'; ?>>
+				<span class="carkeek-events-relationship__selected-name"><?php echo esc_html( $has_cpt ? $cpt_name : '' ); ?></span>
+				<button type="button" class="carkeek-events-relationship__clear" aria-label="<?php esc_attr_e( 'Clear selection', 'carkeek-events' ); ?>">&#x2715;</button>
+				<span class="carkeek-events-relationship__usage" aria-live="polite">
+					<?php echo $usage ? esc_html( $this->usage_hint_text( $usage ) ) : ''; ?>
+				</span>
 			</div>
 
-			<div class="carkeek-events-relationship__panel carkeek-events-relationship__panel--new">
-				<?php $this->render_new_cpt_fields( $type ); ?>
+			<div class="carkeek-events-relationship__details" <?php echo $has_cpt ? '' : 'hidden'; ?>>
+				<?php $this->render_cpt_fields( $type, $values ); ?>
 			</div>
 
 		</div>
@@ -312,25 +329,46 @@ class CarkeekEvents_Meta_Boxes {
 	}
 
 	/**
-	 * Render the inline create-new fields for a location or organizer.
+	 * "Used by N events" hint text.
+	 *
+	 * @since 2.4.0
+	 * @param int $count Number of events linking the record.
+	 * @return string
+	 */
+	private function usage_hint_text( $count ) {
+		/* translators: %d: number of events. */
+		return sprintf( _n( 'Used by %d event — edits apply to all.', 'Used by %d events — edits apply to all.', $count, 'carkeek-events' ), $count );
+	}
+
+	/**
+	 * Render the editable fields for a location or organizer.
+	 *
+	 * Serves both "create new" (blank values) and "edit selected existing"
+	 * (prefilled) states. Field names use the carkeek_event_{type}_field_{key}
+	 * convention so a single panel drives both save paths.
 	 *
 	 * @since 1.0.0
-	 * @param string $type 'location' or 'organizer'.
+	 * @param string $type   'location' or 'organizer'.
+	 * @param array  $values Optional prefill values keyed by field (name, address, …).
 	 * @return void
 	 */
-	private function render_new_cpt_fields( $type ) {
+	private function render_cpt_fields( $type, $values = array() ) {
+		$v = function ( $key ) use ( $values ) {
+			return isset( $values[ $key ] ) ? $values[ $key ] : '';
+		};
 		?>
-		<div class="carkeek-events-new-cpt-fields">
+		<div class="carkeek-events-cpt-fields">
 
 			<div class="carkeek-events-row">
 				<div class="carkeek-events-col carkeek-events-col--full">
-					<label for="carkeek_event_<?php echo esc_attr( $type ); ?>_new_name">
+					<label for="carkeek_event_<?php echo esc_attr( $type ); ?>_field_name">
 						<?php esc_html_e( 'Name', 'carkeek-events' ); ?> <span aria-hidden="true">*</span>
 					</label>
 					<input type="text"
-						id="carkeek_event_<?php echo esc_attr( $type ); ?>_new_name"
-						name="carkeek_event_<?php echo esc_attr( $type ); ?>_new_name"
-						class="widefat" />
+						id="carkeek_event_<?php echo esc_attr( $type ); ?>_field_name"
+						name="carkeek_event_<?php echo esc_attr( $type ); ?>_field_name"
+						class="widefat" data-field="name"
+						value="<?php echo esc_attr( $v( 'name' ) ); ?>" />
 				</div>
 			</div>
 
@@ -338,54 +376,73 @@ class CarkeekEvents_Meta_Boxes {
 
 				<div class="carkeek-events-row">
 					<div class="carkeek-events-col carkeek-events-col--full">
-						<label for="carkeek_event_location_new_address"><?php esc_html_e( 'Street Address', 'carkeek-events' ); ?></label>
-						<input type="text" id="carkeek_event_location_new_address" name="carkeek_event_location_new_address" class="widefat" />
+						<label for="carkeek_event_location_field_address"><?php esc_html_e( 'Street Address', 'carkeek-events' ); ?></label>
+						<input type="text" id="carkeek_event_location_field_address" name="carkeek_event_location_field_address" class="widefat" data-field="address" value="<?php echo esc_attr( $v( 'address' ) ); ?>" />
 					</div>
 				</div>
 
 				<div class="carkeek-events-row">
 					<div class="carkeek-events-col">
-						<label for="carkeek_event_location_new_city"><?php esc_html_e( 'City', 'carkeek-events' ); ?></label>
-						<input type="text" id="carkeek_event_location_new_city" name="carkeek_event_location_new_city" />
+						<label for="carkeek_event_location_field_city"><?php esc_html_e( 'City', 'carkeek-events' ); ?></label>
+						<input type="text" id="carkeek_event_location_field_city" name="carkeek_event_location_field_city" data-field="city" value="<?php echo esc_attr( $v( 'city' ) ); ?>" />
 					</div>
 					<div class="carkeek-events-col">
-						<label for="carkeek_event_location_new_state"><?php esc_html_e( 'State / Province', 'carkeek-events' ); ?></label>
-						<input type="text" id="carkeek_event_location_new_state" name="carkeek_event_location_new_state" />
+						<label for="carkeek_event_location_field_state"><?php esc_html_e( 'State / Province', 'carkeek-events' ); ?></label>
+						<input type="text" id="carkeek_event_location_field_state" name="carkeek_event_location_field_state" data-field="state" value="<?php echo esc_attr( $v( 'state' ) ); ?>" />
 					</div>
 					<div class="carkeek-events-col">
-						<label for="carkeek_event_location_new_zip"><?php esc_html_e( 'Zip / Postal Code', 'carkeek-events' ); ?></label>
-						<input type="text" id="carkeek_event_location_new_zip" name="carkeek_event_location_new_zip" />
+						<label for="carkeek_event_location_field_zip"><?php esc_html_e( 'Zip / Postal Code', 'carkeek-events' ); ?></label>
+						<input type="text" id="carkeek_event_location_field_zip" name="carkeek_event_location_field_zip" data-field="zip" value="<?php echo esc_attr( $v( 'zip' ) ); ?>" />
 					</div>
 					<div class="carkeek-events-col">
-						<label for="carkeek_event_location_new_country"><?php esc_html_e( 'Country', 'carkeek-events' ); ?></label>
-						<input type="text" id="carkeek_event_location_new_country" name="carkeek_event_location_new_country" />
+						<label for="carkeek_event_location_field_country"><?php esc_html_e( 'Country', 'carkeek-events' ); ?></label>
+						<input type="text" id="carkeek_event_location_field_country" name="carkeek_event_location_field_country" data-field="country" value="<?php echo esc_attr( $v( 'country' ) ); ?>" />
 					</div>
 				</div>
 
 				<div class="carkeek-events-row">
 					<div class="carkeek-events-col carkeek-events-col--full">
-						<label for="carkeek_event_location_new_website"><?php esc_html_e( 'Website', 'carkeek-events' ); ?></label>
-						<input type="url" id="carkeek_event_location_new_website" name="carkeek_event_location_new_website" class="widefat" />
+						<label for="carkeek_event_location_field_website"><?php esc_html_e( 'Website', 'carkeek-events' ); ?></label>
+						<input type="url" id="carkeek_event_location_field_website" name="carkeek_event_location_field_website" class="widefat" data-field="website" value="<?php echo esc_attr( $v( 'website' ) ); ?>" />
 					</div>
 				</div>
+
+				<div class="carkeek-events-row carkeek-events-row--geocode">
+					<div class="carkeek-events-col">
+						<label for="carkeek_event_location_field_lat"><?php esc_html_e( 'Latitude', 'carkeek-events' ); ?></label>
+						<input type="text" id="carkeek_event_location_field_lat" name="carkeek_event_location_field_lat" data-field="lat" value="<?php echo esc_attr( $v( 'lat' ) ); ?>" placeholder="e.g. 47.6062" />
+					</div>
+					<div class="carkeek-events-col">
+						<label for="carkeek_event_location_field_lng"><?php esc_html_e( 'Longitude', 'carkeek-events' ); ?></label>
+						<input type="text" id="carkeek_event_location_field_lng" name="carkeek_event_location_field_lng" data-field="lng" value="<?php echo esc_attr( $v( 'lng' ) ); ?>" placeholder="e.g. -122.3321" />
+					</div>
+					<div class="carkeek-events-col carkeek-events-col--geocode-btn">
+						<label>&nbsp;</label>
+						<button type="button" class="button carkeek-events-inline-geocode"
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'carkeek_events_geocode' ) ); ?>">
+							<?php esc_html_e( 'Geocode Address', 'carkeek-events' ); ?>
+						</button>
+					</div>
+				</div>
+				<div class="carkeek-events-relationship__geocode-status carkeek-events-geocode-status" style="display:none;"></div>
 
 			<?php else : ?>
 
 				<div class="carkeek-events-row">
 					<div class="carkeek-events-col">
-						<label for="carkeek_event_organizer_new_email"><?php esc_html_e( 'Email', 'carkeek-events' ); ?></label>
-						<input type="email" id="carkeek_event_organizer_new_email" name="carkeek_event_organizer_new_email" />
+						<label for="carkeek_event_organizer_field_email"><?php esc_html_e( 'Email', 'carkeek-events' ); ?></label>
+						<input type="email" id="carkeek_event_organizer_field_email" name="carkeek_event_organizer_field_email" data-field="email" value="<?php echo esc_attr( $v( 'email' ) ); ?>" />
 					</div>
 					<div class="carkeek-events-col">
-						<label for="carkeek_event_organizer_new_phone"><?php esc_html_e( 'Phone', 'carkeek-events' ); ?></label>
-						<input type="tel" id="carkeek_event_organizer_new_phone" name="carkeek_event_organizer_new_phone" />
+						<label for="carkeek_event_organizer_field_phone"><?php esc_html_e( 'Phone', 'carkeek-events' ); ?></label>
+						<input type="tel" id="carkeek_event_organizer_field_phone" name="carkeek_event_organizer_field_phone" data-field="phone" value="<?php echo esc_attr( $v( 'phone' ) ); ?>" />
 					</div>
 				</div>
 
 				<div class="carkeek-events-row">
 					<div class="carkeek-events-col carkeek-events-col--full">
-						<label for="carkeek_event_organizer_new_website"><?php esc_html_e( 'Website', 'carkeek-events' ); ?></label>
-						<input type="url" id="carkeek_event_organizer_new_website" name="carkeek_event_organizer_new_website" class="widefat" />
+						<label for="carkeek_event_organizer_field_website"><?php esc_html_e( 'Website', 'carkeek-events' ); ?></label>
+						<input type="url" id="carkeek_event_organizer_field_website" name="carkeek_event_organizer_field_website" class="widefat" data-field="website" value="<?php echo esc_attr( $v( 'website' ) ); ?>" />
 					</div>
 				</div>
 
@@ -393,6 +450,78 @@ class CarkeekEvents_Meta_Boxes {
 
 		</div>
 		<?php
+	}
+
+	/**
+	 * Read a linked record's field values for prefilling the details panel.
+	 *
+	 * @since 2.4.0
+	 * @param string $type   'location' or 'organizer'.
+	 * @param int    $cpt_id The linked post ID.
+	 * @return array Values keyed by field.
+	 */
+	private function get_cpt_field_values( $type, $cpt_id ) {
+		$post = get_post( $cpt_id );
+		if ( ! $post ) {
+			return array();
+		}
+		$values = array( 'name' => $post->post_title );
+		foreach ( $this->cpt_field_map( $type ) as $field => $meta_key ) {
+			$values[ $field ] = get_post_meta( $cpt_id, $meta_key, true );
+		}
+		return $values;
+	}
+
+	/**
+	 * Map of details-panel field keys to their record meta keys.
+	 *
+	 * @since 2.4.0
+	 * @param string $type 'location' or 'organizer'.
+	 * @return array field => meta_key (excludes 'name', which is the post title).
+	 */
+	private function cpt_field_map( $type ) {
+		if ( 'location' === $type ) {
+			return array(
+				'address' => '_carkeek_location_address',
+				'city'    => '_carkeek_location_city',
+				'state'   => '_carkeek_location_state',
+				'zip'     => '_carkeek_location_zip',
+				'country' => '_carkeek_location_country',
+				'website' => '_carkeek_location_website',
+				'lat'     => '_carkeek_location_lat',
+				'lng'     => '_carkeek_location_lng',
+			);
+		}
+		return array(
+			'email'   => '_carkeek_organizer_email',
+			'phone'   => '_carkeek_organizer_phone',
+			'website' => '_carkeek_organizer_website',
+		);
+	}
+
+	/**
+	 * Count how many events currently link a given location/organizer record.
+	 *
+	 * @since 2.4.0
+	 * @param string $type   'location' or 'organizer'.
+	 * @param int    $cpt_id The record post ID.
+	 * @return int
+	 */
+	private function count_linked_events( $type, $cpt_id ) {
+		$query = new WP_Query( array(
+			'post_type'      => 'carkeek_event',
+			'post_status'    => 'any',
+			'fields'         => 'ids',
+			'posts_per_page' => -1,
+			'no_found_rows'  => true,
+			'meta_query'     => array(
+				array(
+					'key'   => "_carkeek_event_{$type}_id",
+					'value' => (int) $cpt_id,
+				),
+			),
+		) );
+		return count( $query->posts );
 	}
 
 	/**
@@ -438,39 +567,14 @@ class CarkeekEvents_Meta_Boxes {
 			delete_post_meta( $post_id, '_carkeek_event_end' );
 		}
 
-		// Location. Only process when the field group is in use AND its inputs were
-		// actually submitted — otherwise a hidden row would zero out a stored link.
-		if ( CarkeekEvents_Display::field_enabled( 'locations' ) && isset( $_POST['carkeek_event_location_mode'] ) ) {
-			$location_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_location_mode'] ) );
-			if ( 'new' === $location_mode ) {
-				$this->create_and_link_cpt( $post_id, 'location' );
-			} else {
-				$location_id = absint( $_POST['carkeek_event_location_id'] ?? 0 );
-				if ( $location_id ) {
-					$loc_post = get_post( $location_id );
-					if ( ! $loc_post || 'carkeek_location' !== $loc_post->post_type ) {
-						$location_id = 0;
-					}
-				}
-				update_post_meta( $post_id, '_carkeek_event_location_id', $location_id );
-			}
+		// Location / Organizer relationships. Each only processes when the field
+		// group is in use AND its mode input was submitted — otherwise a hidden row
+		// would zero out a stored link.
+		if ( CarkeekEvents_Display::field_enabled( 'locations' ) ) {
+			$this->save_relationship( $post_id, 'location' );
 		}
-
-		// Organizer. Guarded the same way as Location above.
-		if ( CarkeekEvents_Display::field_enabled( 'organizers' ) && isset( $_POST['carkeek_event_organizer_mode'] ) ) {
-			$organizer_mode = sanitize_key( wp_unslash( $_POST['carkeek_event_organizer_mode'] ) );
-			if ( 'new' === $organizer_mode ) {
-				$this->create_and_link_cpt( $post_id, 'organizer' );
-			} else {
-				$organizer_id = absint( $_POST['carkeek_event_organizer_id'] ?? 0 );
-				if ( $organizer_id ) {
-					$org_post = get_post( $organizer_id );
-					if ( ! $org_post || 'carkeek_organizer' !== $org_post->post_type ) {
-						$organizer_id = 0;
-					}
-				}
-				update_post_meta( $post_id, '_carkeek_event_organizer_id', $organizer_id );
-			}
+		if ( CarkeekEvents_Display::field_enabled( 'organizers' ) ) {
+			$this->save_relationship( $post_id, 'organizer' );
 		}
 
 		// Event website URL.
@@ -508,7 +612,64 @@ class CarkeekEvents_Meta_Boxes {
 	}
 
 	/**
-	 * Create a new location or organizer post from inline form data and link it to the event.
+	 * Save one relationship (location or organizer) from the submitted meta box.
+	 *
+	 * Modes (from the hidden carkeek_event_{type}_mode input):
+	 *   'new' — create a new record from the details fields and link it.
+	 *   'cpt' — link the selected record, and (when its fields were loaded and the
+	 *           user may edit it) write inline edits back to that shared record.
+	 *   ''    — clear the link.
+	 *
+	 * @since 2.4.0
+	 * @param int    $event_id Event post ID.
+	 * @param string $type     'location' or 'organizer'.
+	 * @return void
+	 */
+	private function save_relationship( $event_id, $type ) {
+		$mode_key = "carkeek_event_{$type}_mode";
+		if ( ! isset( $_POST[ $mode_key ] ) ) {
+			return; // Field not present (e.g. hidden by "Fields in Use") — never zero the link.
+		}
+
+		$mode      = sanitize_key( wp_unslash( $_POST[ $mode_key ] ) );
+		$post_type = "carkeek_{$type}";
+		$meta_key  = "_carkeek_event_{$type}_id";
+
+		if ( 'new' === $mode ) {
+			$this->create_and_link_cpt( $event_id, $type );
+			return;
+		}
+
+		if ( 'cpt' === $mode ) {
+			$cpt_id = absint( $_POST["carkeek_event_{$type}_id"] ?? 0 );
+			if ( $cpt_id ) {
+				$cpt = get_post( $cpt_id );
+				if ( ! $cpt || $post_type !== $cpt->post_type ) {
+					$cpt_id = 0;
+				}
+			}
+			update_post_meta( $event_id, $meta_key, $cpt_id );
+
+			// Write inline edits back to the shared record only when its fields were
+			// actually loaded (guards against blanking on a failed AJAX populate) and
+			// the current user may edit that specific record.
+			$loaded = ! empty( $_POST["carkeek_event_{$type}_fields_loaded"] );
+			if ( $cpt_id && $loaded && current_user_can( 'edit_post', $cpt_id ) ) {
+				$name = sanitize_text_field( wp_unslash( $_POST["carkeek_event_{$type}_field_name"] ?? '' ) );
+				if ( '' !== $name && $name !== get_post_field( 'post_title', $cpt_id ) ) {
+					wp_update_post( array( 'ID' => $cpt_id, 'post_title' => $name ) );
+				}
+				$this->save_cpt_fields_from_post( $cpt_id, $type );
+			}
+			return;
+		}
+
+		// Empty mode — the link was cleared.
+		update_post_meta( $event_id, $meta_key, 0 );
+	}
+
+	/**
+	 * Create a new location or organizer post from the details fields and link it.
 	 *
 	 * @since 1.0.0
 	 * @param int    $event_id The event post ID.
@@ -516,7 +677,7 @@ class CarkeekEvents_Meta_Boxes {
 	 * @return void
 	 */
 	private function create_and_link_cpt( $event_id, $type ) {
-		$name = sanitize_text_field( wp_unslash( $_POST[ "carkeek_event_{$type}_new_name" ] ?? '' ) );
+		$name = sanitize_text_field( wp_unslash( $_POST[ "carkeek_event_{$type}_field_name" ] ?? '' ) );
 		if ( ! $name ) {
 			return;
 		}
@@ -531,34 +692,40 @@ class CarkeekEvents_Meta_Boxes {
 			return;
 		}
 
-		if ( 'location' === $type ) {
-			$text_fields = array(
-				'_carkeek_location_address' => 'carkeek_event_location_new_address',
-				'_carkeek_location_city'    => 'carkeek_event_location_new_city',
-				'_carkeek_location_state'   => 'carkeek_event_location_new_state',
-				'_carkeek_location_zip'     => 'carkeek_event_location_new_zip',
-				'_carkeek_location_country' => 'carkeek_event_location_new_country',
-			);
-			foreach ( $text_fields as $meta_key => $post_key ) {
-				$val = sanitize_text_field( wp_unslash( $_POST[ $post_key ] ?? '' ) );
-				if ( $val ) {
-					update_post_meta( $new_id, $meta_key, $val );
-				}
-			}
-			$website = esc_url_raw( wp_unslash( $_POST['carkeek_event_location_new_website'] ?? '' ) );
-			if ( $website ) {
-				update_post_meta( $new_id, '_carkeek_location_website', $website );
-			}
-		} else {
-			$email   = sanitize_email( wp_unslash( $_POST['carkeek_event_organizer_new_email'] ?? '' ) );
-			$phone   = sanitize_text_field( wp_unslash( $_POST['carkeek_event_organizer_new_phone'] ?? '' ) );
-			$website = esc_url_raw( wp_unslash( $_POST['carkeek_event_organizer_new_website'] ?? '' ) );
-			if ( $email )   update_post_meta( $new_id, '_carkeek_organizer_email', $email );
-			if ( $phone )   update_post_meta( $new_id, '_carkeek_organizer_phone', $phone );
-			if ( $website ) update_post_meta( $new_id, '_carkeek_organizer_website', $website );
-		}
+		$this->save_cpt_fields_from_post( $new_id, $type );
 
 		update_post_meta( $event_id, "_carkeek_event_{$type}_id", $new_id );
+	}
+
+	/**
+	 * Persist the details-panel fields onto a location/organizer record.
+	 *
+	 * Reads the carkeek_event_{type}_field_{key} inputs. A blank value deletes the
+	 * meta (so inline edits can clear a field). Shared by the create and edit paths.
+	 *
+	 * @since 2.4.0
+	 * @param int    $cpt_id The location/organizer post ID.
+	 * @param string $type   'location' or 'organizer'.
+	 * @return void
+	 */
+	private function save_cpt_fields_from_post( $cpt_id, $type ) {
+		foreach ( $this->cpt_field_map( $type ) as $field => $meta_key ) {
+			$raw = wp_unslash( $_POST[ "carkeek_event_{$type}_field_{$field}" ] ?? '' );
+
+			if ( 'email' === $field ) {
+				$val = sanitize_email( $raw );
+			} elseif ( 'website' === $field ) {
+				$val = esc_url_raw( $raw );
+			} else {
+				$val = sanitize_text_field( $raw );
+			}
+
+			if ( '' !== $val ) {
+				update_post_meta( $cpt_id, $meta_key, $val );
+			} else {
+				delete_post_meta( $cpt_id, $meta_key );
+			}
+		}
 	}
 
 	// -----------------------------------------------------------------------
@@ -834,6 +1001,51 @@ class CarkeekEvents_Meta_Boxes {
 		}
 
 		wp_send_json_success( $results );
+	}
+
+	/**
+	 * AJAX handler: return a location/organizer record's fields + usage count.
+	 *
+	 * Used to populate the inline details panel when an existing record is selected.
+	 *
+	 * @since 2.4.0
+	 * @return void
+	 */
+	public function ajax_get_cpt_fields() {
+		check_ajax_referer( 'carkeek_events_admin', 'nonce' );
+
+		$post_type = sanitize_key( $_POST['post_type'] ?? '' );
+		$id        = absint( $_POST['id'] ?? 0 );
+
+		$type_map = array(
+			'carkeek_location'  => 'location',
+			'carkeek_organizer' => 'organizer',
+		);
+		if ( ! isset( $type_map[ $post_type ] ) ) {
+			wp_send_json_error( 'Invalid post type' );
+		}
+		if ( ! $id || ! current_user_can( 'edit_post', $id ) ) {
+			wp_send_json_error( 'Unauthorized' );
+		}
+
+		$post = get_post( $id );
+		if ( ! $post || $post_type !== $post->post_type ) {
+			wp_send_json_error( 'Not found' );
+		}
+
+		$type   = $type_map[ $post_type ];
+		$fields = array( 'name' => $post->post_title );
+		foreach ( $this->cpt_field_map( $type ) as $field => $meta_key ) {
+			$fields[ $field ] = get_post_meta( $id, $meta_key, true );
+		}
+
+		$usage = $this->count_linked_events( $type, $id );
+
+		wp_send_json_success( array(
+			'fields'    => $fields,
+			'usage'     => $usage,
+			'usageText' => $usage ? $this->usage_hint_text( $usage ) : '',
+		) );
 	}
 }
 

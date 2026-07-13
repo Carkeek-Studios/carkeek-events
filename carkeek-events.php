@@ -4,7 +4,7 @@
  * Description:       Lightweight, developer-friendly event management. Registers Event, Location, and Organizer custom post types with meta boxes, expiry cron, and optional Google Maps geocoding.
  * Requires at least: 6.4
  * Requires PHP:      8.1
- * Version:           2.3.02
+ * Version:           2.4.0
  * Author:            Carkeek Studios
  * Author URI:        https://carkeekstudios.com
  * License:           GPL-2.0-or-later
