@@ -362,6 +362,25 @@ class CarkeekEvents_Display {
 	}
 
 	/**
+	 * Return a record name, linked to its website when one is set.
+	 *
+	 * Used in the non-"link" display modes (address / address_directions for
+	 * locations, info for organizers) where the name is not already linked to the
+	 * record's WordPress page. When no website is set, the plain escaped name is returned.
+	 *
+	 * @since 2.3.1
+	 * @param string $name    Record title.
+	 * @param string $website Website URL, or empty.
+	 * @return string HTML (an <a> when a website is set, else escaped text).
+	 */
+	private static function name_with_website( $name, $website ) {
+		if ( $website ) {
+			return '<a href="' . esc_url( $website ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $name ) . '</a>';
+		}
+		return esc_html( $name );
+	}
+
+	/**
 	 * Build an address block from location meta.
 	 *
 	 * @since 1.0.0
@@ -376,15 +395,16 @@ class CarkeekEvents_Display {
 		$state   = get_post_meta( $location_id, '_carkeek_location_state', true );
 		$zip     = get_post_meta( $location_id, '_carkeek_location_zip', true );
 		$country = get_post_meta( $location_id, '_carkeek_location_country', true );
+		$website = get_post_meta( $location_id, '_carkeek_location_website', true );
 
-		// If no address data, just return the name.
+		// If no address data, just return the name (linked to the website if set).
 		if ( ! $address && ! $city && ! $state ) {
-			return esc_html( $name );
+			return self::name_with_website( $name, $website );
 		}
 
 		$lines = array();
 		if ( $name ) {
-			$lines[] = '<div class="carkeek-event-sublabel carkeek-event-location-name">' . esc_html( $name ) . '</div>';
+			$lines[] = '<div class="carkeek-event-sublabel carkeek-event-location-name">' . self::name_with_website( $name, $website ) . '</div>';
 		}
 		if ( $address ) {
 			$lines[] = '<div class="carkeek-event-meta carkeek-event-location-address">' . esc_html( $address ) . '</div>';
@@ -604,7 +624,7 @@ class CarkeekEvents_Display {
 		$lines = array();
 
 		if ( $name ) {
-			$lines[] = '<div class="carkeek-event-sublabel carkeek-event-organizer-name">' . esc_html( $name ) . '</div>';
+			$lines[] = '<div class="carkeek-event-sublabel carkeek-event-organizer-name">' . self::name_with_website( $name, $website ) . '</div>';
 		}
 		if ( $email ) {
 			$lines[] = '<div class="carkeek-event-meta carkeek-event-organizer-email"><a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a></div>';

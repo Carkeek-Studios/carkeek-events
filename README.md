@@ -150,6 +150,8 @@ Returns the location display HTML per the **Location Display** setting in **Even
 - `address` — formatted address block (name, street, city, state/zip/country)
 - `address_directions` — address block with a "Get Directions" link to Google Maps
 
+In the `address` and `address_directions` modes, the location **name links to the location's website** when one is set on the record (otherwise it is plain text).
+
 Falls back to the free-text location string if no CPT post is linked.
 
 **Filter:** `carkeek_events_location_display( $html, $post_id )`
@@ -162,6 +164,8 @@ Returns the organizer display HTML per the **Organizer Display** setting in **Ev
 
 - `link` (default) — organizer name linked to their CPT single page
 - `info` — name + email (linked) + phone (linked) + website inline
+
+In the `info` mode, the organizer **name links to the organizer's website** when one is set on the record (otherwise it is plain text).
 
 Falls back to the free-text organizer string if no CPT post is linked.
 
