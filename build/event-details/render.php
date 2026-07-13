@@ -56,6 +56,7 @@ $parts = array_filter(
 		CarkeekEvents_Display::get_date_range_html( $post_id, $attributes['dateTimeSeparator'], $attributes['dateTimeLabel'] ),
 		CarkeekEvents_Display::get_event_location_html( $post_id, $attributes['locationLabel'], $attributes['showDirectionsLink'] ),
 		CarkeekEvents_Display::get_event_organizer_html( $post_id, $attributes['organizerLabel'] ),
+		CarkeekEvents_Display::get_event_link_html( $post_id, ),
 	)
 );
 
