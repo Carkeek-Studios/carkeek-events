@@ -71,6 +71,19 @@ The plugin provides **no opinionated front-end styles**. It ships default templa
 
 ---
 
+## Linking Locations & Organizers (Event editor)
+
+The **Location** and **Organizer** fields in the Event Details meta box use a single combobox:
+
+- **Search or select** — click the field and start typing to find an existing record (AJAX search of published locations/organizers).
+- **Create new** — a persistent **“+ Create new …”** row at the bottom of the dropdown opens a blank inline form; the record is created and linked when you save the event.
+- **Inline edit** — selecting an existing record reveals its current fields (address, etc.) inline, editable in place. **Edits are saved to that shared record when you update the event**, so a “Used by N events — edits apply to all” hint is shown. Locations include a **Geocode Address** button in the inline panel.
+- **Clear** — the ✕ next to a selection removes the link (applied on save).
+
+Inline edits to an existing record only save when the record’s fields loaded successfully and the current user can edit that record; otherwise the link is updated but the record’s data is left untouched.
+
+---
+
 ## Display Helpers (`CarkeekEvents_Display`)
 
 All display helpers accept just the **event post ID** — they fetch their own meta internally. Output everything with `wp_kses_post()`.

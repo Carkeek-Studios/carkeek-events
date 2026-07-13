@@ -95,6 +95,8 @@ class CarkeekEvents_Admin {
 				'geocodeQuota'    => __( 'Too many requests. Please try again later.', 'carkeek-events' ),
 				'selectResult'    => __( 'Select a result', 'carkeek-events' ),
 				'noResults'       => __( 'No results found.', 'carkeek-events' ),
+				'newRecord'       => __( 'New (unsaved)', 'carkeek-events' ),
+				'loadError'       => __( 'Could not load details. Edits are disabled until reloaded.', 'carkeek-events' ),
 			),
 		) );
 	}
