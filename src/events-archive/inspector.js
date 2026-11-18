@@ -55,6 +55,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 		enableLoadMore,
 		loadMoreLabel,
 		contentSlots,
+		linkedElement,
 		slotDateFormat,
 		slotTimeFormat,
 		showEndDateTime,
@@ -74,6 +75,7 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 	const hasDateSlot = slots.some( ( s ) => DATE_SLOT_VALUES.includes( s ) );
 	const hasExcerptSlot = slots.includes( 'excerpt' );
 	const hasButtonLinkSlot = slots.includes( 'button_link' );
+	const hasLinkableDateSlot = slots.includes( 'date' ) || slots.includes( 'date_time' );
 
 	const visibleCount = Math.min( MAX_SLOTS, slots.length + 1 );
 
@@ -303,7 +305,13 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 					options={ [
 						{ label: __( 'Grid', 'carkeek-events' ), value: 'grid' },
 						{ label: __( 'List', 'carkeek-events' ), value: 'list' },
+						{ label: __( 'Dynamic', 'carkeek-events' ), value: 'dynamic' },
 					] }
+					help={
+						postLayout === 'dynamic'
+							? __( 'Arranges events automatically for 1, 2, or 3 or more. The excerpt shows only for a single event.', 'carkeek-events' )
+							: undefined
+					}
 					onChange={ ( value ) => setAttributes( { postLayout: value } ) }
 				/>
 				{ postLayout === 'grid' && (
@@ -395,6 +403,22 @@ const EventsInspector = ( { attributes, setAttributes } ) => {
 						) }
 					</Flex>
 				) ) }
+
+				<SelectControl
+					label={ __( 'Linked Element', 'carkeek-events' ) }
+					help={
+						linkedElement === 'date' && ! hasLinkableDateSlot
+							? __( 'Add a Date slot to link the date. Until then, the title is linked.', 'carkeek-events' )
+							: __( 'The text that links to the event. The featured image always links.', 'carkeek-events' )
+					}
+					value={ linkedElement }
+					options={ [
+						{ label: __( 'Title', 'carkeek-events' ), value: 'title' },
+						{ label: __( 'Date', 'carkeek-events' ), value: 'date' },
+					] }
+					onChange={ ( value ) => setAttributes( { linkedElement: value } ) }
+					__nextHasNoMarginBottom
+				/>
 
 				<hr style={ { margin: '12px 0' } } />
 				<ToggleControl

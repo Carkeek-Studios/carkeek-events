@@ -472,8 +472,9 @@ The WordPress archive template is hard to customise without a page builder. The 
 | Include Past Events | off | Show events whose end date has passed |
 | Only Past Events | off | Show only past events |
 | Filter by Category | off | Multi-select from `carkeek_event_category` terms |
-| Post Layout | `grid` | `grid` or `list` |
-| Columns (Desktop/Tablet/Mobile) | 3/2/1 | Grid columns at each breakpoint |
+| Post Layout | `grid` | `grid`, `list`, or `dynamic` |
+| Columns (Desktop/Tablet/Mobile) | 3/2/1 | Grid columns at each breakpoint. Grid layout only |
+| Linked Element | `title` | Text that links to the event: `title` or `date`. The featured image always links |
 | Display Featured Image | on | |
 | Display Excerpt | off | |
 | Excerpt Length | 25 words | |
@@ -483,6 +484,20 @@ The WordPress archive template is hard to customise without a page builder. The 
 | Empty State Message | — | Shown when Hide When Empty is off |
 
 **Filter:** `carkeek_events_block_query_args( $args, $attributes )` — modify the WP_Query args for the block.
+
+### Dynamic layout
+
+Dynamic arranges the list by how many events are on the page, and updates after Load More or FacetWP filtering:
+
+| Events | Desktop | Tablet (≤782px) | Phone (≤480px) |
+|---|---|---|---|
+| 1 | Text left, image right, with excerpt | Same | Stacked |
+| 2 | 2 columns | 2 columns | 1 column |
+| 3+ | 3 columns | 2 columns | 1 column |
+
+The Excerpt slot shows only for a single event. The plugin provides structure only. Target `.carkeek-events-archive.is-dynamic` in the theme for gaps, image ratios, and type.
+
+With Linked Element set to `date`, the first Date only or Date + Time slot links to the event and the title becomes plain text. If a card has no such slot or no start date, the title stays linked.
 
 ### Build
 
