@@ -1,6 +1,6 @@
 import { ServerSideRender } from '@wordpress/server-side-render';
 import { useBlockProps } from '@wordpress/block-editor';
-import { Placeholder, Spinner } from '@wordpress/components';
+import { Disabled, Placeholder, Spinner } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 export default function Edit( props ) {
@@ -24,18 +24,20 @@ export default function Edit( props ) {
 						'carkeek-events'
 					) }
 				</p>
-				<ServerSideRender
-					block="carkeek-events/event-details"
-					attributes={ attributes }
-					urlQueryArgs={ { postId } }
-					skipBlockSupportAttributes={ true }
-					EmptyResponsePlaceholder={ () => (
-						<Placeholder
-							label={ __( 'Event Details', 'carkeek-events' ) }
-							instructions={ __( 'No details set for this event, set details below.', 'carkeek-events' ) }
-						/>
-					) }
-				/>
+				<Disabled>
+					<ServerSideRender
+						block="carkeek-events/event-details"
+						attributes={ attributes }
+						urlQueryArgs={ { postId } }
+						skipBlockSupportAttributes={ true }
+						EmptyResponsePlaceholder={ () => (
+							<Placeholder
+								label={ __( 'Event Details', 'carkeek-events' ) }
+								instructions={ __( 'No details set for this event, set details below.', 'carkeek-events' ) }
+							/>
+						) }
+					/>
+				</Disabled>
 			</div>
 		</div>
 	);

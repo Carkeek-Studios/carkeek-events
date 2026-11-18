@@ -25,6 +25,64 @@
 		}
 	}
 
+	// Dynamic layout: arrangement follows the number of cards in the list, so it
+	// stays correct after Load More and FacetWP change the list contents.
+	&.is-dynamic {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+
+		&:has(> .carkeek-event-card:nth-child(2):last-child) {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.carkeek-event-card {
+			flex-direction: column;
+			min-width: 0;
+		}
+
+		.carkeek-event-card__image-link,
+		.carkeek-event-card__content {
+			flex: 0 0 auto;
+		}
+
+		.carkeek-event-card__image-link img {
+			display: block;
+			width: 100%;
+			height: auto;
+		}
+
+		.carkeek-event-card:only-child {
+			grid-column: 1 / -1;
+
+			@media ( min-width: 481px ) {
+				align-items: center;
+				flex-direction: row-reverse;
+
+				.carkeek-event-card__image-link,
+				.carkeek-event-card__content {
+					flex: 1 1 0;
+					min-width: 0;
+				}
+			}
+		}
+
+		.carkeek-event-card:not(:only-child) .carkeek-event-card__slot--excerpt {
+			display: none;
+		}
+
+		@media ( max-width: 782px ) {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		// Repeats the :has() selector because it outranks the plain rule above.
+		@media ( max-width: 480px ) {
+			&,
+			&:has(> .carkeek-event-card:nth-child(2):last-child) {
+				grid-template-columns: minmax(0, 1fr);
+			}
+		}
+	}
+
 	&__list {
 		.carkeek-event-card {
 			display: flex;
@@ -58,6 +116,11 @@
 		display: flex;
 		justify-content: center;;
 	}
+}
+
+// Zero specificity so a theme's gap wins regardless of stylesheet order.
+:where(.carkeek-events-archive.is-dynamic) {
+	gap: 1.5rem;
 }
 
 .carkeek-events-archive-block {

@@ -20,6 +20,9 @@
  *   The optional `slotDateFormat` / `slotTimeFormat` attributes override the
  *   plugin-level date/time format settings for this block instance.
  *   The `showEndDateTime` attribute controls whether end date/time is shown.
+ *   The `linkedElement` attribute ('title' or 'date') selects which text links
+ *   to the event. 'date' links the first date or date_time slot and falls back
+ *   to the title when a card has neither a date slot nor a start date.
  *
  * Featured image is rendered before the slot content when displayFeaturedImage
  * is enabled — it is not a slot because it lives outside the text content area.
@@ -328,8 +331,10 @@ class CarkeekEvents_Block {
 			$html .= '<div class="carkeek-event-card__before-slots">' . wp_kses_post( $before_slots ) . '</div>';
 		}
 
+		$linked_slot = $this->get_linked_slot( $slots, $post_id, $attributes );
+
 		foreach ( $slots as $slot ) {
-			$slot_html = $this->render_slot( $slot, $post_id, $permalink, $attributes );
+			$slot_html = $this->render_slot( $slot, $post_id, $permalink, $attributes, $linked_slot );
 			if ( '' !== $slot_html ) {
 				$html .= '<div class="carkeek-event-card__slot carkeek-event-card__slot--' . esc_attr( $slot ) . '">';
 				$html .= $slot_html; // already escaped in each render_* method
@@ -470,18 +475,76 @@ class CarkeekEvents_Block {
 	// -----------------------------------------------------------------------
 
 	/**
+	 * Resolve which slot carries the text link to the event.
+	 *
+	 * @since 2.6.0
+	 * @param array $slots      Ordered slot identifiers.
+	 * @param int   $post_id    Event post ID.
+	 * @param array $attributes Block attributes.
+	 * @return string 'title', 'date', or 'date_time'.
+	 */
+	private function get_linked_slot( $slots, $post_id, $attributes ) {
+		if ( 'date' !== ( $attributes['linkedElement'] ?? 'title' ) ) {
+			return 'title';
+		}
+
+		$config = $this->get_post_type_config( $attributes );
+		if ( ! get_post_meta( $post_id, $config['start_meta'], true ) ) {
+			return 'title';
+		}
+
+		foreach ( $slots as $slot ) {
+			if ( in_array( $slot, array( 'date', 'date_time' ), true ) ) {
+				return $slot;
+			}
+		}
+
+		return 'title';
+	}
+
+	/**
+	 * Wrap rendered date HTML in a link whose accessible name includes the title.
+	 *
+	 * @since 2.6.0
+	 * @param string $date_html Escaped date HTML.
+	 * @param int    $post_id   Event post ID.
+	 * @param string $permalink Event permalink.
+	 * @return string Link HTML.
+	 */
+	private function render_date_link( $date_html, $post_id, $permalink ) {
+		$label = sprintf(
+			/* translators: 1: event date, 2: event title. */
+			_x( '%1$s: %2$s', 'event date link label', 'carkeek-events' ),
+			wp_strip_all_tags( $date_html ),
+			get_the_title( $post_id )
+		);
+
+		return '<a class="carkeek-event-card__date-link" href="' . esc_url( $permalink ) . '"'
+			. ' aria-label="' . esc_attr( $label ) . '">'
+			. $date_html
+			. '</a>';
+	}
+
+	/**
 	 * Render a single content slot.
 	 *
 	 * @since 2.0.0
-	 * @param string $slot       Slot type identifier.
-	 * @param int    $post_id    Event post ID.
-	 * @param string $permalink  Event permalink.
-	 * @param array  $attributes Block attributes.
+	 * @param string $slot        Slot type identifier.
+	 * @param int    $post_id     Event post ID.
+	 * @param string $permalink   Event permalink.
+	 * @param array  $attributes  Block attributes.
+	 * @param string $linked_slot Slot that carries the text link.
 	 * @return string HTML for the slot, or empty string if nothing to show.
 	 */
-	private function render_slot( $slot, $post_id, $permalink, $attributes ) {
+	private function render_slot( $slot, $post_id, $permalink, $attributes, $linked_slot = 'title' ) {
 		switch ( $slot ) {
 			case 'title':
+				if ( 'title' !== $linked_slot ) {
+					return '<span class="carkeek-event-card__title">'
+						. esc_html( get_the_title( $post_id ) )
+						. '</span>';
+				}
+
 				return '<a class="carkeek-event-card__title" href="' . esc_url( $permalink ) . '">'
 					. esc_html( get_the_title( $post_id ) )
 					. '</a>';
@@ -489,7 +552,11 @@ class CarkeekEvents_Block {
 			case 'date_time':
 			case 'date':
 			case 'time':
-				return $this->render_date_slot( $slot, $post_id, $attributes );
+				$date_html = $this->render_date_slot( $slot, $post_id, $attributes );
+
+				return ( '' !== $date_html && $slot === $linked_slot )
+					? $this->render_date_link( $date_html, $post_id, $permalink )
+					: $date_html;
 
 			case 'location':
 				return CarkeekEvents_Display::field_enabled( 'locations' )

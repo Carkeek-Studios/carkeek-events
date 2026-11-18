@@ -1,6 +1,6 @@
 import { ServerSideRender } from '@wordpress/server-side-render';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
-import { PanelBody, TextControl, Spinner, Placeholder } from '@wordpress/components';
+import { Disabled, PanelBody, TextControl, Spinner, Placeholder } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 export default function Edit( { attributes, context, setAttributes } ) {
@@ -27,18 +27,20 @@ export default function Edit( { attributes, context, setAttributes } ) {
 					/>
 				</PanelBody>
 			</InspectorControls>
-			<ServerSideRender
-				block="carkeek-events/event-organizer"
-				attributes={ attributes }
-				urlQueryArgs={ { postId } }
-				skipBlockSupportAttributes={ true }
-				EmptyResponsePlaceholder={ () => (
-					<Placeholder
-						label={ __( 'Event Organizer', 'carkeek-events' ) }
-						instructions={ __( 'No organizer set for this event.', 'carkeek-events' ) }
-					/>
-				) }
-			/>
+			<Disabled>
+				<ServerSideRender
+					block="carkeek-events/event-organizer"
+					attributes={ attributes }
+					urlQueryArgs={ { postId } }
+					skipBlockSupportAttributes={ true }
+					EmptyResponsePlaceholder={ () => (
+						<Placeholder
+							label={ __( 'Event Organizer', 'carkeek-events' ) }
+							instructions={ __( 'No organizer set for this event.', 'carkeek-events' ) }
+						/>
+					) }
+				/>
+			</Disabled>
 		</div>
 	);
 }

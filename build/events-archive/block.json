@@ -2,6 +2,7 @@
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
   "name": "carkeek-events/archive",
+  "version": "2.6.1",
   "title": "Carkeek Events Archive",
   "category": "widgets",
   "description": "Display a filterable, sortable list of Carkeek Events.",
@@ -96,6 +97,10 @@
     "contentSlots": {
       "type": "string",
       "default": "title,date_time"
+    },
+    "linkedElement": {
+      "type": "string",
+      "default": "title"
     },
     "slotDateFormat": {
       "type": "string",
